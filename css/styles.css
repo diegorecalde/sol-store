@@ -234,7 +234,7 @@ a { color: inherit; }
 
 /* ---------- WhatsApp flotante ---------- */
 .fab-wa {
-  position: fixed; right: 16px; bottom: 16px; z-index: 50;
+  position: fixed; right: 16px; bottom: 84px; z-index: 50;
   width: 56px; height: 56px; border-radius: 50%; background: #1f9d55; color: #fff;
   display: grid; place-items: center; box-shadow: 0 6px 24px rgba(31,157,85,.4);
 }

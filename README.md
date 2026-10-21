@@ -12,7 +12,7 @@ sol-store/
 ├── js/catalogo.js      → Lógica del catálogo
 ├── js/admin.js         → Lógica del panel
 ├── img/                → Logo e ícono
-├── apps-script/Code.gs → Backend (se pega en Apps Script, NO se publica)
+├── apps-script/Code.js → Backend (se sube con clasp, NO se publica)
 └── netlify.toml        → Cabeceras de seguridad
 ```
 
@@ -23,7 +23,7 @@ Sin configurar nada, el sitio funciona en **modo demo** (productos de ejemplo; p
 ## Paso 1 — Planilla y backend (con la cuenta de Google de la tienda)
 
 1. Crear una planilla nueva en Google Sheets llamada **Sol Store**.
-2. Menú **Extensiones → Apps Script**. Borrar el contenido y pegar todo `apps-script/Code.gs`. Guardar.
+2. Menú **Extensiones → Apps Script**. Borrar el contenido y pegar todo `apps-script/Code.js`. Guardar.
 3. Elegir la función **`setup`** y presionar **▶ Ejecutar**. Aceptar los permisos (Sheets y Drive).
    Crea las hojas `Productos`, `Usuarios`, `Config` y la carpeta de Drive **Sol Store - Imagenes**.
 4. En `crearAdminInicial()` cambiar usuario, nombre y clave (mín. 8 caracteres). Ejecutarla **una vez** y después borrar la clave del código.
@@ -32,7 +32,7 @@ Sin configurar nada, el sitio funciona en **modo demo** (productos de ejemplo; p
    - Quién tiene acceso: **Cualquier usuario**
 6. Copiar la URL que termina en **`/exec`**.
 
-> Si cambiás `Code.gs` más adelante: **Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión**. Así la URL no cambia.
+> Si cambiás el backend más adelante: **Implementar → Administrar implementaciones → ✏️ → Versión: Nueva versión**. Así la URL no cambia.
 
 ## Paso 2 — Conectar el sitio
 
