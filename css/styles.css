@@ -253,7 +253,7 @@ a { color: inherit; }
 /* ---------- Avisos ---------- */
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-  background: var(--ink); color: #fff; padding: 12px 20px; border-radius: var(--r-pill);
+  background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 20px; text-align: center;
   font-size: 14px; z-index: 200; box-shadow: var(--shadow-lg); max-width: calc(100% - 32px);
   animation: up .2s ease;
 }

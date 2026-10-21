@@ -84,3 +84,15 @@ body.admin { background: var(--canvas); }
 .uitem .grow { flex: 1; min-width: 0; }
 .uitem span { font-size: 12px; color: var(--muted); }
 .mini { min-height: 34px; padding: 6px 12px; font-size: 13px; }
+
+/* Categorías */
+.hint { font-size: 13px; color: var(--muted); margin: -6px 0 14px; }
+.cdot { width: 36px; height: 36px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-wash); color: var(--accent); }
+.uitem.off { opacity: .55; }
+.cact { display: flex; gap: 4px; flex: none; }
+.cact .icon-btn { width: 34px; height: 34px; box-shadow: none; }
+.cact .icon-btn:disabled { opacity: .3; cursor: default; }
+.icon-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.icon-pick button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--muted); }
+.icon-pick button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-wash); color: #6f5230; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; }

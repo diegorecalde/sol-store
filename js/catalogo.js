@@ -1,34 +1,37 @@
 /* Catálogo público */
 (function () {
-  const { esc, precio, imgUrl, imgFallback, get, toast } = window.SOL;
+  const { esc, precio, imgUrl, imgFallback, get, toast, icono } = window.SOL;
   const $ = s => document.querySelector(s);
 
-  const ICONOS = {
-    todo: '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
-    nueva: '<path d="M8 3 4 6l2 4 2-1v12h8V9l2 1 2-4-4-3c-1 1.5-2.4 2-4 2S9 4.5 8 3Z"/>',
-    usada: '<path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/>',
-    acc: '<path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
-    lenc: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/>',
-    perf: '<path d="M9 3h6v3H9zM10 6v2M14 6v2"/><rect x="6" y="8" width="12" height="13" rx="3"/>'
-  };
-  const FILTROS = [
-    { id: 'todo', label: 'Todo', icon: 'todo', fn: () => true },
-    { id: 'nueva', label: 'Ropa nueva', icon: 'nueva', fn: p => p.categoria === 'Ropa' && p.condicion === 'Nuevo' },
-    { id: 'usada', label: 'Segunda mano', icon: 'usada', fn: p => p.condicion === 'Segunda mano' },
-    { id: 'acc', label: 'Accesorios', icon: 'acc', fn: p => p.categoria === 'Accesorios' },
-    { id: 'lenc', label: 'Lencería', icon: 'lenc', fn: p => p.categoria === 'Lencería' },
-    { id: 'perf', label: 'Perfumes', icon: 'perf', fn: p => p.categoria === 'Perfumes' }
-  ];
+  // Íconos por defecto para catálogos sin lista de categorías (backend anterior)
+  const ICONO_POR_DEFECTO = { 'Ropa': 'ropa', 'Accesorios': 'acc', 'Lencería': 'lenc', 'Perfumes': 'perf' };
+  let FILTROS = [{ id: 'todo', label: 'Todo', icon: 'todo', fn: () => true }];
 
-  const estado = { productos: [], config: {}, filtro: 'todo', q: '', orden: 'rel' };
+  /** Arma los botones: Todo + categorías con productos + Segunda mano */
+  function construirFiltros() {
+    let cats = estado.categorias;
+    if (!cats || !cats.length) {
+      const vistos = [];
+      estado.productos.forEach(p => { if (p.categoria && !vistos.includes(p.categoria)) vistos.push(p.categoria); });
+      cats = vistos.map(n => ({ nombre: n, icono: ICONO_POR_DEFECTO[n] || 'etiqueta' }));
+    }
+    const conProductos = cats.filter(c => estado.productos.some(p => p.categoria === c.nombre));
+    FILTROS = [{ id: 'todo', label: 'Todo', icon: 'todo', fn: () => true }]
+      .concat(conProductos.map((c, i) => ({ id: 'c' + i, label: c.nombre, icon: c.icono, fn: p => p.categoria === c.nombre })));
+    if (estado.productos.some(p => p.condicion === 'Segunda mano'))
+      FILTROS.push({ id: 'usada', label: 'Segunda mano', icon: 'usada', fn: p => p.condicion === 'Segunda mano' });
+    if (!FILTROS.some(f => f.id === estado.filtro)) estado.filtro = 'todo';
+  }
+
+  const estado = { productos: [], categorias: [], config: {}, filtro: 'todo', q: '', orden: 'rel' };
 
   // ---------- Render de chips ----------
   function renderChips() {
     $('#chips').innerHTML = FILTROS.map(f => `
       <button class="chip" type="button" data-f="${f.id}" aria-pressed="${f.id === estado.filtro}">
-        <span class="dot"><svg class="icon" viewBox="0 0 24 24" style="width:16px;height:16px">${ICONOS[f.icon]}</svg></span>${f.label}
+        <span class="dot">${icono(f.icon)}</span>${esc(f.label)}
       </button>`).join('');
-    $('#footCats').innerHTML = FILTROS.slice(1).map(f => `<a href="#catalogo" data-f="${f.id}">${f.label}</a>`).join('');
+    $('#footCats').innerHTML = FILTROS.slice(1).map(f => `<a href="#catalogo" data-f="${f.id}">${esc(f.label)}</a>`).join('');
   }
 
   function aplicarFiltro(id) {
@@ -231,7 +234,10 @@
   // ---------- Carga ----------
   function cargarDatos(d) {
     estado.productos = d.productos || [];
+    estado.categorias = d.categorias || [];
     estado.config = d.config || {};
+    construirFiltros();
+    renderChips();
     aplicarConfig();
     renderDestacados();
     renderLista();
@@ -252,7 +258,7 @@
       const d = await get({ action: 'catalogo' });
       if (!d.ok) throw new Error(d.error || 'Error');
       const abierto = !$('#modal').hidden;
-      if (!abierto) cargarDatos(d); else { estado.productos = d.productos; estado.config = d.config; renderLista(); renderDestacados(); }
+      if (!abierto) cargarDatos(d); else { estado.productos = d.productos; estado.categorias = d.categorias || []; estado.config = d.config; construirFiltros(); renderChips(); renderLista(); renderDestacados(); }
       try { if (!d.demo) localStorage.setItem('sol_catalogo', JSON.stringify(d)); } catch (e) { }
     } catch (err) {
       if (!enCache) {

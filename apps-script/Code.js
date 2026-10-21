@@ -14,6 +14,7 @@
 const HOJA_PRODUCTOS = 'Productos';
 const HOJA_USUARIOS = 'Usuarios';
 const HOJA_CONFIG = 'Config';
+const HOJA_CATEGORIAS = 'Categorias';
 const CARPETA_IMAGENES = 'Sol Store - Imagenes';
 const DURACION_SESION = 6 * 60 * 60; // 6 horas (segundos)
 const MAX_INTENTOS_LOGIN = 5;          // bloqueo temporal tras 5 intentos fallidos
@@ -25,7 +26,8 @@ const COLUMNAS_PRODUCTOS = [
 ];
 const COLUMNAS_USUARIOS = ['usuario', 'nombre', 'hash', 'salt', 'rol', 'activo', 'creado'];
 
-const CATEGORIAS = ['Ropa', 'Accesorios', 'Lencería', 'Perfumes'];
+// Categorías iniciales (después se editan desde el panel)
+const CATEGORIAS_INICIALES = [['Ropa', 'ropa'], ['Accesorios', 'acc'], ['Lencería', 'lenc'], ['Perfumes', 'perf']];
 const CONDICIONES = ['Nuevo', 'Segunda mano'];
 
 // ===================== INSTALACIÓN =====================
@@ -61,8 +63,8 @@ function setup() {
   // Validaciones de datos en la hoja (desplegables)
   const hp = ss.getSheetByName(HOJA_PRODUCTOS);
   const col = n => COLUMNAS_PRODUCTOS.indexOf(n) + 1;
-  hp.getRange(2, col('categoria'), 1000).setDataValidation(
-    SpreadsheetApp.newDataValidation().requireValueInList(CATEGORIAS).build());
+  hojaCategorias_();
+  validacionCategorias_();
   hp.getRange(2, col('condicion'), 1000).setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(CONDICIONES).build());
   hp.getRange(2, col('destacado'), 1000).insertCheckboxes();
@@ -127,6 +129,10 @@ function doPost(e) {
       case 'eliminarProducto': return json_(conLock_(() => eliminarProducto_(datos.id)));
       case 'subirImagen': return json_(subirImagen_(datos));
       case 'leerConfig': return json_({ ok: true, config: leerConfig_() });
+      case 'listarCategorias': return json_({ ok: true, categorias: leerCategorias_(false) });
+      case 'guardarCategoria': soloAdmin_(sesion); return json_(conLock_(() => guardarCategoria_(datos.categoria)));
+      case 'eliminarCategoria': soloAdmin_(sesion); return json_(conLock_(() => eliminarCategoria_(datos.nombre)));
+      case 'ordenarCategorias': soloAdmin_(sesion); return json_(conLock_(() => ordenarCategorias_(datos.nombres)));
       case 'guardarConfig': return json_(conLock_(() => guardarConfig_(datos.config, sesion)));
       case 'cambiarClave': return json_(cambiarClave_(sesion, datos.actual, datos.nueva));
       case 'listarUsuarios': soloAdmin_(sesion); return json_({ ok: true, usuarios: listarUsuarios_() });
@@ -168,7 +174,7 @@ function catalogoPublico_() {
     return p;
   });
   const cfg = leerConfig_();
-  const respuesta = { ok: true, config: cfg, productos: productos, generado: new Date().toISOString() };
+  const respuesta = { ok: true, config: cfg, categorias: leerCategorias_(true), productos: productos, generado: new Date().toISOString() };
 
   const texto = JSON.stringify(respuesta);
   if (texto.length < 95000) cache.put('catalogo', texto, 120); // 2 min
@@ -219,7 +225,7 @@ function normalizar_(p) {
 
 function guardarProducto_(p, sesion) {
   if (!p || !String(p.nombre || '').trim()) throw new Error('El nombre es obligatorio');
-  if (CATEGORIAS.indexOf(p.categoria) < 0) throw new Error('Categoría no válida');
+  if (nombresCategorias_().indexOf(p.categoria) < 0) throw new Error('Categoría no válida');
   if (CONDICIONES.indexOf(p.condicion) < 0) throw new Error('Condición no válida');
 
   const hoja = SpreadsheetApp.getActive().getSheetByName(HOJA_PRODUCTOS);
@@ -275,6 +281,118 @@ function eliminarProducto_(id) {
     }
   }
   throw new Error('Producto no encontrado');
+}
+
+// ===================== CATEGORÍAS =====================
+/** Devuelve la hoja de categorías; si no existe la crea con las iniciales */
+function hojaCategorias_() {
+  const ss = SpreadsheetApp.getActive();
+  let h = ss.getSheetByName(HOJA_CATEGORIAS);
+  if (!h) {
+    h = crearHoja_(ss, HOJA_CATEGORIAS, ['nombre', 'icono', 'orden', 'activo']);
+    h.getRange(2, 1, CATEGORIAS_INICIALES.length, 4)
+      .setValues(CATEGORIAS_INICIALES.map((c, i) => [c[0], c[1], i + 1, true]));
+    h.getRange(2, 4, 200).insertCheckboxes();
+    validacionCategorias_();
+  }
+  return h;
+}
+
+/** El desplegable de la columna "categoria" en Productos toma los valores de la hoja Categorias */
+function validacionCategorias_() {
+  const ss = SpreadsheetApp.getActive();
+  const hp = ss.getSheetByName(HOJA_PRODUCTOS);
+  const hc = ss.getSheetByName(HOJA_CATEGORIAS);
+  if (!hp || !hc) return;
+  const col = COLUMNAS_PRODUCTOS.indexOf('categoria') + 1;
+  hp.getRange(2, col, 1000).setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInRange(hc.getRange('A2:A'), true).setAllowInvalid(true).build());
+}
+
+function leerCategorias_(soloActivas) {
+  const filas = hojaCategorias_().getDataRange().getValues().slice(1);
+  const lista = filas
+    .filter(r => String(r[0]).trim())
+    .map(r => ({
+      nombre: String(r[0]).trim(),
+      icono: String(r[1] || 'etiqueta'),
+      orden: Number(r[2]) || 999,
+      activo: r[3] === true || String(r[3]).toUpperCase() === 'TRUE'
+    }))
+    .sort((a, b) => a.orden - b.orden);
+  return soloActivas ? lista.filter(c => c.activo) : lista;
+}
+
+function nombresCategorias_() {
+  return leerCategorias_(false).map(c => c.nombre);
+}
+
+function guardarCategoria_(c) {
+  const nombre = String((c && c.nombre) || '').trim().replace(/\s+/g, ' ');
+  if (nombre.length < 2 || nombre.length > 40) throw new Error('El nombre debe tener entre 2 y 40 caracteres');
+  if (/[,]/.test(nombre)) throw new Error('El nombre no puede tener comas');
+  const icono = /^[a-z]{2,12}$/.test(String(c.icono || '')) ? c.icono : 'etiqueta';
+  const original = String(c.nombreOriginal || '').trim();
+
+  const h = hojaCategorias_();
+  const filas = h.getDataRange().getValues();
+  const igual = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+  const idx = original ? filas.findIndex((r, i) => i > 0 && igual(r[0], original)) : -1;
+  if (original && idx < 1) throw new Error('Categoría no encontrada');
+  if (filas.some((r, i) => i > 0 && i !== idx && igual(r[0], nombre))) throw new Error('Ya existe una categoría con ese nombre');
+
+  if (idx > 0) {
+    h.getRange(idx + 1, 1, 1, 2).setValues([[nombre, icono]]);
+    h.getRange(idx + 1, 4).setValue(c.activo !== false);
+    if (original !== nombre) renombrarEnProductos_(original, nombre);
+  } else {
+    const maxOrden = filas.slice(1).reduce((m, r) => Math.max(m, Number(r[2]) || 0), 0);
+    h.appendRow([nombre, icono, maxOrden + 1, c.activo !== false]);
+    h.getRange(h.getLastRow(), 4).insertCheckboxes().setValue(c.activo !== false);
+  }
+  limpiarCache_();
+  return { ok: true };
+}
+
+function renombrarEnProductos_(viejo, nuevo) {
+  const hp = SpreadsheetApp.getActive().getSheetByName(HOJA_PRODUCTOS);
+  if (hp.getLastRow() < 2) return;
+  const col = COLUMNAS_PRODUCTOS.indexOf('categoria') + 1;
+  const rango = hp.getRange(2, col, hp.getLastRow() - 1, 1);
+  const vals = rango.getValues().map(r => [String(r[0]).trim() === viejo ? nuevo : r[0]]);
+  rango.setValues(vals);
+}
+
+function contarProductosEn_(nombre) {
+  const hp = SpreadsheetApp.getActive().getSheetByName(HOJA_PRODUCTOS);
+  if (hp.getLastRow() < 2) return 0;
+  const col = COLUMNAS_PRODUCTOS.indexOf('categoria') + 1;
+  return hp.getRange(2, col, hp.getLastRow() - 1, 1).getValues().filter(r => String(r[0]).trim() === nombre).length;
+}
+
+function eliminarCategoria_(nombre) {
+  nombre = String(nombre || '').trim();
+  const n = contarProductosEn_(nombre);
+  if (n > 0) throw new Error('No se puede eliminar: tiene ' + n + ' producto(s). Pasalos a otra categoría primero.');
+  const h = hojaCategorias_();
+  const filas = h.getDataRange().getValues();
+  const idx = filas.findIndex((r, i) => i > 0 && String(r[0]).trim() === nombre);
+  if (idx < 1) throw new Error('Categoría no encontrada');
+  h.deleteRow(idx + 1);
+  limpiarCache_();
+  return { ok: true };
+}
+
+function ordenarCategorias_(nombres) {
+  if (!Array.isArray(nombres)) throw new Error('Orden inválido');
+  const h = hojaCategorias_();
+  const filas = h.getDataRange().getValues();
+  for (let i = 1; i < filas.length; i++) {
+    const pos = nombres.indexOf(String(filas[i][0]).trim());
+    if (pos >= 0) h.getRange(i + 1, 3).setValue(pos + 1);
+  }
+  limpiarCache_();
+  return { ok: true };
 }
 
 // ===================== IMÁGENES (DRIVE) =====================

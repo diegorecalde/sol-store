@@ -1,10 +1,10 @@
 /* Panel de administración */
 (function () {
-  const { esc, precio, imgUrl, post, toast, DEMO } = window.SOL;
+  const { esc, precio, imgUrl, post, toast, DEMO, ICONOS, icono } = window.SOL;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
-  const st = { token: null, user: null, productos: [], editando: null, imgs: [], subiendo: 0 };
+  const st = { token: null, user: null, productos: [], categorias: [], catsOk: true, editando: null, imgs: [], subiendo: 0, catEdit: null, catIcono: 'etiqueta' };
 
   // ---------- Sesión ----------
   const guardarToken = t => { try { t ? localStorage.setItem('sol_token', t) : localStorage.removeItem('sol_token'); } catch (e) { } };
@@ -34,6 +34,7 @@
     $$('[data-admin]').forEach(el => el.hidden = st.user.rol !== 'admin');
     $('#demoBanner').hidden = !DEMO;
     cambiarTab('productos');
+    cargarCategorias();
     cargarProductos();
   }
 
@@ -69,6 +70,7 @@
     $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === id));
     $$('.panel').forEach(p => p.hidden = p.id !== 'tab-' + id);
     if (id === 'ajustes') cargarConfig();
+    if (id === 'categorias') renderCategorias();
     if (id === 'usuarios') cargarUsuarios();
   }
   $$('.tab').forEach(t => t.addEventListener('click', () => cambiarTab(t.dataset.tab)));
@@ -80,6 +82,7 @@
       const r = await api('listarProductos');
       st.productos = r.productos || [];
       renderProductos();
+      if (!st.catsOk) usarCategoriasDeRespaldo();
     } catch (err) {
       $('#plist').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
     }
@@ -158,7 +161,8 @@
     st.imgs = p ? p.imagenes.slice() : [];
     $('#eTitulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
     $('#eNombre').value = p ? p.nombre : '';
-    $('#eCat').value = p ? p.categoria : 'Ropa';
+    llenarSelects(p ? p.categoria : '');
+    $('#eCat').value = p ? p.categoria : ((st.categorias.find(c => c.activo) || st.categorias[0] || {}).nombre || '');
     $('#eCond').value = p ? p.condicion : 'Nuevo';
     $('#ePrecio').value = p && p.precio ? p.precio.toLocaleString('es-PY') : '';
     $('#eAnt').value = p && p.precio_anterior ? p.precio_anterior.toLocaleString('es-PY') : '';
@@ -316,6 +320,146 @@
       document.body.style.overflow = '';
       toast('Producto eliminado');
     } catch (err) { $('#eErr').textContent = err.message; }
+  });
+
+  // ---------- Categorías ----------
+  const DEFECTO = [['Ropa', 'ropa'], ['Accesorios', 'acc'], ['Lencería', 'lenc'], ['Perfumes', 'perf']];
+
+  async function cargarCategorias() {
+    try {
+      const r = await api('listarCategorias');
+      st.categorias = r.categorias || [];
+      st.catsOk = true;
+    } catch (err) {
+      // Backend sin actualizar: se usan las categorías de siempre
+      st.catsOk = false;
+      usarCategoriasDeRespaldo();
+    }
+    llenarSelects();
+    if (!$('#tab-categorias').hidden) renderCategorias();
+  }
+
+  function usarCategoriasDeRespaldo() {
+    const nombres = DEFECTO.map(d => d[0]);
+    st.productos.forEach(p => { if (p.categoria && !nombres.includes(p.categoria)) nombres.push(p.categoria); });
+    st.categorias = nombres.map((n, i) => ({ nombre: n, icono: (DEFECTO.find(d => d[0] === n) || [, 'etiqueta'])[1], orden: i + 1, activo: true }));
+    llenarSelects();
+  }
+
+  /** Completa los desplegables de categoría (filtro del listado y editor) */
+  function llenarSelects(incluir) {
+    const filtro = $('#aCat'), actual = filtro.value;
+    filtro.innerHTML = '<option value="">Todas</option>' +
+      st.categorias.map(c => `<option value="${esc(c.nombre)}">${esc(c.nombre)}</option>`).join('');
+    filtro.value = st.categorias.some(c => c.nombre === actual) ? actual : '';
+
+    const visibles = st.categorias.filter(c => c.activo || c.nombre === incluir);
+    $('#eCat').innerHTML = visibles.map(c =>
+      `<option value="${esc(c.nombre)}">${esc(c.nombre)}${c.activo ? '' : ' (oculta)'}</option>`).join('');
+  }
+
+  const cuenta = n => st.productos.filter(p => p.categoria === n).length;
+
+  function renderCategorias() {
+    if (!st.catsOk) {
+      $('#clist').innerHTML = `<div class="empty" style="padding:24px 8px">Para editar categorías falta actualizar el backend.<br>
+        Ejecutá <code>clasp push</code> y <code>clasp deploy</code> en la carpeta <code>apps-script</code>.</div>`;
+      $('#fCat').hidden = true;
+      return;
+    }
+    $('#fCat').hidden = false;
+    const n = st.categorias.length;
+    $('#clist').innerHTML = n ? st.categorias.map((c, i) => `
+      <div class="uitem ${c.activo ? '' : 'off'}">
+        <span class="cdot">${icono(c.icono, 18)}</span>
+        <div class="grow"><b>${esc(c.nombre)}</b><br><span>${cuenta(c.nombre)} producto(s)${c.activo ? '' : ' · Oculta'}</span></div>
+        <div class="cact">
+          <button class="icon-btn" data-up="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Subir ${esc(c.nombre)}" title="Subir">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+          <button class="icon-btn" data-down="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="Bajar ${esc(c.nombre)}" title="Bajar">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+          <button class="icon-btn" data-cedit="${i}" aria-label="Editar ${esc(c.nombre)}" title="Editar">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4ZM14 6l4 4"/></svg></button>
+          <button class="icon-btn" data-cdel="${i}" aria-label="Eliminar ${esc(c.nombre)}" title="Eliminar">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+        </div>
+      </div>`).join('') : '<p class="hint">Todavía no hay categorías.</p>';
+    renderIconos();
+  }
+
+  function renderIconos() {
+    $('#cIconos').innerHTML = Object.keys(ICONOS).map(k => `
+      <button type="button" role="radio" data-ic="${k}" aria-checked="${k === st.catIcono}">
+        ${icono(k, 22)}<span>${esc(ICONOS[k].n)}</span></button>`).join('');
+  }
+  $('#cIconos').addEventListener('click', e => {
+    const b = e.target.closest('[data-ic]'); if (!b) return;
+    st.catIcono = b.dataset.ic;
+    renderIconos();
+  });
+
+  function formCategoria(c) {
+    st.catEdit = c || null;
+    st.catIcono = c ? c.icono : 'etiqueta';
+    $('#cTit').textContent = c ? `Editar “${c.nombre}”` : 'Nueva categoría';
+    $('#cNom').value = c ? c.nombre : '';
+    $('#cAct').checked = c ? c.activo : true;
+    $('#cSave').textContent = c ? 'Guardar cambios' : 'Agregar categoría';
+    $('#cCancel').hidden = !c;
+    $('#cErr').textContent = '';
+    renderIconos();
+    if (c) { $('#fCat').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#cNom').focus(); }
+  }
+  $('#cCancel').addEventListener('click', () => formCategoria(null));
+
+  async function guardarOrden(lista) {
+    const previo = st.categorias;
+    st.categorias = lista.map((c, i) => Object.assign({}, c, { orden: i + 1 }));
+    renderCategorias(); llenarSelects();
+    try { await api('ordenarCategorias', { nombres: st.categorias.map(c => c.nombre) }); }
+    catch (err) { st.categorias = previo; renderCategorias(); llenarSelects(); toast(err.message, true); }
+  }
+
+  $('#clist').addEventListener('click', async e => {
+    const b = e.target.closest('button'); if (!b || b.disabled) return;
+    const lista = st.categorias.slice();
+    if (b.dataset.up) { const i = +b.dataset.up; [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]]; return guardarOrden(lista); }
+    if (b.dataset.down) { const i = +b.dataset.down; [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]]; return guardarOrden(lista); }
+    if (b.dataset.cedit) return formCategoria(st.categorias[+b.dataset.cedit]);
+    if (b.dataset.cdel) {
+      const c = st.categorias[+b.dataset.cdel];
+      const n = cuenta(c.nombre);
+      if (n) return toast(`“${c.nombre}” tiene ${n} producto(s). Pasalos a otra categoría antes de eliminarla.`, true);
+      if (!confirm(`¿Eliminar la categoría “${c.nombre}”?`)) return;
+      try {
+        await api('eliminarCategoria', { nombre: c.nombre });
+        st.categorias = st.categorias.filter(x => x !== c);
+        if (st.catEdit === c) formCategoria(null);
+        renderCategorias(); llenarSelects();
+        toast('Categoría eliminada');
+      } catch (err) { toast(err.message, true); }
+    }
+  });
+
+  $('#fCat').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nombre = $('#cNom').value.trim().replace(/\s+/g, ' ');
+    $('#cErr').textContent = '';
+    if (nombre.length < 2) return $('#cErr').textContent = 'Escribí un nombre de al menos 2 letras.';
+    if (nombre.includes(',')) return $('#cErr').textContent = 'El nombre no puede tener comas.';
+    const original = st.catEdit ? st.catEdit.nombre : '';
+    const btn = $('#cSave'); btn.disabled = true;
+    try {
+      await api('guardarCategoria', { categoria: { nombre, nombreOriginal: original, icono: st.catIcono, activo: $('#cAct').checked } });
+      if (original && original !== nombre) st.productos.forEach(p => { if (p.categoria === original) p.categoria = nombre; });
+      const r = await api('listarCategorias');
+      st.categorias = r.categorias || [];
+      formCategoria(null);
+      renderCategorias(); llenarSelects(); renderProductos();
+      toast(original ? 'Categoría actualizada' : 'Categoría agregada');
+    } catch (err) {
+      $('#cErr').textContent = err.message;
+    } finally { btn.disabled = false; }
   });
 
   // ---------- Ajustes ----------

@@ -51,6 +51,7 @@
       <div class="demo-banner" id="demoBanner" hidden style="border-radius:14px;margin-top:12px">Modo demostración: los cambios no se guardan.</div>
       <nav class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="productos" aria-selected="true">Productos</button>
+        <button class="tab" role="tab" data-tab="categorias" aria-selected="false" data-admin>Categorías</button>
         <button class="tab" role="tab" data-tab="ajustes" aria-selected="false" data-admin>Tienda</button>
         <button class="tab" role="tab" data-tab="usuarios" aria-selected="false" data-admin>Usuarios</button>
         <button class="tab" role="tab" data-tab="cuenta" aria-selected="false">Mi cuenta</button>
@@ -65,13 +66,35 @@
           </div>
           <select class="select" id="aCat" aria-label="Filtrar categoría">
             <option value="">Todas</option>
-            <option>Ropa</option><option>Accesorios</option><option>Lencería</option><option>Perfumes</option>
           </select>
           <button class="btn btn-primary" id="bNuevo">
             <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo
           </button>
         </div>
         <div class="plist" id="plist"></div>
+      </section>
+
+      <!-- Categorías -->
+      <section class="panel" id="tab-categorias" hidden>
+        <div class="box">
+          <h3>Categorías</h3>
+          <p class="hint">El orden de esta lista es el de los botones en la tienda. Las categorías ocultas o sin productos no se muestran a los clientes.</p>
+          <div class="ulist" id="clist"></div>
+        </div>
+        <form class="box" id="fCat">
+          <h3 id="cTit">Nueva categoría</h3>
+          <div class="field"><label for="cNom">Nombre</label><input class="input" id="cNom" maxlength="40" required placeholder="Ej.: Calzados"></div>
+          <div class="field">
+            <label>Ícono</label>
+            <div class="icon-pick" id="cIconos" role="radiogroup" aria-label="Ícono de la categoría"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="cAct" checked> Visible en la tienda</label>
+          <div class="err-msg" id="cErr" role="alert"></div>
+          <div class="row-btns">
+            <button class="btn btn-primary" type="submit" id="cSave">Agregar categoría</button>
+            <button class="btn" type="button" id="cCancel" hidden>Cancelar</button>
+          </div>
+        </form>
       </section>
 
       <!-- Ajustes de tienda -->
@@ -138,7 +161,7 @@
       <div class="field"><label for="eNombre">Nombre *</label><input class="input" id="eNombre" required maxlength="120"></div>
       <div class="row2">
         <div class="field"><label for="eCat">Categoría *</label>
-          <select id="eCat"><option>Ropa</option><option>Accesorios</option><option>Lencería</option><option>Perfumes</option></select></div>
+          <select id="eCat"></select></div>
         <div class="field"><label for="eCond">Condición *</label>
           <select id="eCond"><option>Nuevo</option><option>Segunda mano</option></select></div>
       </div>
