@@ -1,0 +1,25 @@
+[build]
+  publish = "."
+
+# Cabeceras de seguridad para todo el sitio
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    X-Frame-Options = "SAMEORIGIN"
+
+# El panel no se indexa ni se cachea
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
+
+# La carpeta del backend no se publica
+[[redirects]]
+  from = "/apps-script/*"
+  to = "/404.html"
+  status = 404
+  force = true

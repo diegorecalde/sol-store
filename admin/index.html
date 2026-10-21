@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel · Sol Store</title>
+  <link rel="icon" href="../img/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body class="admin">
+
+  <!-- ========== LOGIN ========== -->
+  <div class="login-wrap" id="vLogin" hidden>
+    <form class="login-card" id="fLogin" autocomplete="on">
+      <span class="brand-text">Sol<small>STORE</small></span>
+      <h1>Panel de administración</h1>
+      <p>Acceso solo para usuarios autorizados</p>
+      <div class="field">
+        <label for="lUser">Usuario</label>
+        <input class="input" id="lUser" name="username" autocomplete="username" required autocapitalize="none">
+      </div>
+      <div class="field">
+        <label for="lPass">Clave</label>
+        <input class="input" id="lPass" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div class="err-msg" id="lErr" role="alert"></div>
+      <button class="btn btn-primary btn-block" id="lBtn" type="submit">Ingresar</button>
+      <p style="margin:16px 0 0"><a href="../" style="color:var(--muted);font-size:13px">← Ver la tienda</a></p>
+    </form>
+  </div>
+
+  <!-- ========== PANEL ========== -->
+  <div id="vPanel" hidden>
+    <header class="topbar adm-top">
+      <div class="wrap">
+        <a class="brand" href="../" target="_blank" title="Ver tienda"><span class="brand-text">Sol<small>PANEL</small></span></a>
+        <span class="spacer"></span>
+        <div class="adm-user"><b id="uNombre"></b><span id="uRol"></span></div>
+        <button class="icon-btn" id="bSalir" aria-label="Cerrar sesión" title="Cerrar sesión">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div class="demo-banner" id="demoBanner" hidden style="border-radius:14px;margin-top:12px">Modo demostración: los cambios no se guardan.</div>
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="productos" aria-selected="true">Productos</button>
+        <button class="tab" role="tab" data-tab="ajustes" aria-selected="false" data-admin>Tienda</button>
+        <button class="tab" role="tab" data-tab="usuarios" aria-selected="false" data-admin>Usuarios</button>
+        <button class="tab" role="tab" data-tab="cuenta" aria-selected="false">Mi cuenta</button>
+      </nav>
+
+      <!-- Productos -->
+      <section class="panel" id="tab-productos">
+        <div class="stats" id="stats"></div>
+        <div class="adm-bar">
+          <div class="search">
+            <input id="aQ" type="search" placeholder="Buscar producto…" aria-label="Buscar producto">
+          </div>
+          <select class="select" id="aCat" aria-label="Filtrar categoría">
+            <option value="">Todas</option>
+            <option>Ropa</option><option>Accesorios</option><option>Lencería</option><option>Perfumes</option>
+          </select>
+          <button class="btn btn-primary" id="bNuevo">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nuevo
+          </button>
+        </div>
+        <div class="plist" id="plist"></div>
+      </section>
+
+      <!-- Ajustes de tienda -->
+      <section class="panel" id="tab-ajustes" hidden>
+        <form class="box" id="fCfg">
+          <h3>Datos de la tienda</h3>
+          <div class="field"><label for="cNombre">Nombre</label><input class="input" id="cNombre" data-k="nombre_tienda"></div>
+          <div class="field"><label for="cWa">WhatsApp</label><input class="input" id="cWa" data-k="whatsapp" inputmode="numeric" placeholder="595981123456"><small>Con código de país, sin + ni espacios.</small></div>
+          <div class="field"><label for="cIg">Instagram</label><input class="input" id="cIg" data-k="instagram" placeholder="usuario"></div>
+          <div class="field"><label for="cMsg">Mensaje de bienvenida</label><textarea class="textarea" id="cMsg" data-k="mensaje_bienvenida"></textarea></div>
+          <div class="field"><label for="cDir">Dirección / zona</label><input class="input" id="cDir" data-k="direccion"></div>
+          <button class="btn btn-primary" type="submit">Guardar cambios</button>
+        </form>
+      </section>
+
+      <!-- Usuarios -->
+      <section class="panel" id="tab-usuarios" hidden>
+        <div class="box">
+          <h3>Usuarios con acceso</h3>
+          <div class="ulist" id="ulist"></div>
+        </div>
+        <form class="box" id="fUser">
+          <h3>Agregar usuario</h3>
+          <div class="row2">
+            <div class="field"><label for="nuUser">Usuario</label><input class="input" id="nuUser" required autocapitalize="none" pattern="[a-zA-Z0-9._\-]{3,30}"></div>
+            <div class="field"><label for="nuNombre">Nombre</label><input class="input" id="nuNombre" required></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="nuClave">Clave inicial</label><input class="input" id="nuClave" type="text" minlength="8" required autocomplete="off"></div>
+            <div class="field"><label for="nuRol">Rol</label>
+              <select id="nuRol"><option value="editor">Editor (solo productos)</option><option value="admin">Administrador</option></select></div>
+          </div>
+          <button class="btn btn-primary" type="submit">Crear usuario</button>
+        </form>
+      </section>
+
+      <!-- Mi cuenta -->
+      <section class="panel" id="tab-cuenta" hidden>
+        <form class="box" id="fClave">
+          <h3>Cambiar mi clave</h3>
+          <div class="field"><label for="kAct">Clave actual</label><input class="input" id="kAct" type="password" required autocomplete="current-password"></div>
+          <div class="field"><label for="kNue">Nueva clave</label><input class="input" id="kNue" type="password" minlength="8" required autocomplete="new-password"><small>Mínimo 8 caracteres.</small></div>
+          <button class="btn btn-primary" type="submit">Actualizar clave</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <!-- ========== EDITOR DE PRODUCTO ========== -->
+  <div class="modal drawer" id="mEdit" hidden role="dialog" aria-modal="true" aria-labelledby="eTitulo">
+    <div class="modal-bg" data-close></div>
+    <form class="modal-box" id="fProd" novalidate>
+      <button type="button" class="icon-btn modal-close" data-close aria-label="Cerrar">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <h2 id="eTitulo">Nuevo producto</h2>
+
+      <div class="field">
+        <label>Fotos <small>(la primera es la principal)</small></label>
+        <div class="imgs" id="eImgs"></div>
+        <input type="file" id="eFile" accept="image/jpeg,image/png,image/webp" multiple hidden>
+      </div>
+
+      <div class="field"><label for="eNombre">Nombre *</label><input class="input" id="eNombre" required maxlength="120"></div>
+      <div class="row2">
+        <div class="field"><label for="eCat">Categoría *</label>
+          <select id="eCat"><option>Ropa</option><option>Accesorios</option><option>Lencería</option><option>Perfumes</option></select></div>
+        <div class="field"><label for="eCond">Condición *</label>
+          <select id="eCond"><option>Nuevo</option><option>Segunda mano</option></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="ePrecio">Precio (Gs.) *</label><input class="input" id="ePrecio" inputmode="numeric" required></div>
+        <div class="field"><label for="eAnt">Precio anterior</label><input class="input" id="eAnt" inputmode="numeric" placeholder="Para mostrar oferta"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="eTalles">Talles</label><input class="input" id="eTalles" placeholder="S, M, L"><small>Separados por coma</small></div>
+        <div class="field"><label for="eColores">Colores</label><input class="input" id="eColores" placeholder="Negro, Beige"><small>Separados por coma</small></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="eStock">Stock</label><input class="input" id="eStock" inputmode="numeric" placeholder="Vacío = sin control"><small>0 = agotado</small></div>
+        <div class="field"><label for="eOrden">Orden</label><input class="input" id="eOrden" inputmode="numeric" placeholder="1 = primero"></div>
+      </div>
+      <div class="field"><label for="eDesc">Descripción</label><textarea class="textarea" id="eDesc" maxlength="2000"></textarea></div>
+      <label class="check"><input type="checkbox" id="eDest"> Mostrar en Destacados</label>
+      <label class="check"><input type="checkbox" id="eAct" checked> Visible en la tienda</label>
+      <div class="err-msg" id="eErr" role="alert"></div>
+
+      <div class="drawer-actions">
+        <button type="button" class="btn btn-danger" id="eDel" hidden>Eliminar</button>
+        <button type="submit" class="btn btn-primary" id="eSave">Guardar</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/admin.js"></script>
+</body>
+</html>

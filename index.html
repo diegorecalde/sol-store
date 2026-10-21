@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Sol Store · Ropa, accesorios, lencería y perfumes</title>
+  <meta name="description" content="Catálogo online de Sol Store: ropa nueva y de segunda mano, accesorios, lencería y perfumes. Consultá y pedí por WhatsApp.">
+  <meta name="theme-color" content="#ffffff">
+  <meta property="og:title" content="Sol Store">
+  <meta property="og:description" content="Ropa nueva y de segunda mano, accesorios, lencería y perfumes.">
+  <meta property="og:image" content="img/logo.jpg">
+  <link rel="icon" href="img/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="demo-banner" id="demoBanner" hidden>Modo demostración: productos de ejemplo. Configurá la URL del backend en <code>js/config.js</code>.</div>
+
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="#" aria-label="Sol Store, inicio">
+        <span class="brand-text">Sol<small>STORE</small></span>
+      </a>
+      <span class="spacer"></span>
+      <a class="top-link" href="#catalogo">Catálogo</a>
+      <a class="icon-btn" id="topWa" href="#" target="_blank" rel="noopener" aria-label="Escribinos por WhatsApp">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.4 8.4 0 1 1 21 11.5Z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero wrap">
+      <img class="hero-logo" src="img/logo.jpg" alt="Sol Store" width="220" height="220"
+           onerror="this.hidden=true;document.getElementById('heroWord').hidden=false">
+      <h1 class="hero-wordmark" id="heroWord" hidden>Sol<span>STORE</span></h1>
+      <p id="bienvenida">Ropa nueva y de segunda mano, accesorios, lencería y perfumes.</p>
+
+      <form class="search" id="searchForm" role="search">
+        <label for="q" class="sr-only">Buscar productos</label>
+        <input id="q" type="search" placeholder="¿Qué estás buscando hoy?" autocomplete="off">
+        <button type="submit" aria-label="Buscar">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+
+      <nav class="chips" id="chips" aria-label="Categorías"></nav>
+    </section>
+
+    <section class="section wrap" id="destacadosSec" hidden>
+      <div class="section-head"><h2>Destacados</h2></div>
+      <div class="rail" id="destacados"></div>
+    </section>
+
+    <section class="section wrap" id="catalogo">
+      <div class="section-head">
+        <div>
+          <h2 id="tituloLista">Todo el catálogo</h2>
+          <span class="count" id="contador"></span>
+        </div>
+        <div class="toolbar">
+          <label for="orden" class="sr-only">Ordenar</label>
+          <select class="select" id="orden">
+            <option value="rel">Recomendados</option>
+            <option value="nuevos">Más nuevos</option>
+            <option value="menor">Menor precio</option>
+            <option value="mayor">Mayor precio</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" id="grid" aria-live="polite"></div>
+      <div class="empty" id="vacio" hidden>
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <p>No encontramos productos con ese filtro.</p>
+        <button class="btn" id="limpiar">Ver todo</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div>
+        <span class="brand-text">Sol<small>STORE</small></span>
+        <p id="footDir" style="margin:14px 0 0"></p>
+      </div>
+      <div>
+        <h4>Categorías</h4>
+        <div id="footCats"></div>
+      </div>
+      <div>
+        <h4>Contacto</h4>
+        <a id="footWa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+        <a id="footIg" href="#" target="_blank" rel="noopener" hidden>Instagram</a>
+      </div>
+      <div class="copy">© <span id="anio"></span> Sol Store. Precios sujetos a disponibilidad.</div>
+    </div>
+  </footer>
+
+  <a class="fab-wa" id="fabWa" href="#" target="_blank" rel="noopener" aria-label="Consultar por WhatsApp">
+    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.8 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1-.4-.1-1-.3-1.7-.6-3-1.3-4.9-4.3-5.1-4.5-.1-.2-1.2-1.6-1.2-3.1s.8-2.2 1-2.5c.3-.3.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.6 2.1 1.1 1 2 1.3 2.3 1.4.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.7-.1l2 1c.3.1.5.2.5.3.1.2.1.7-.1 1.5Z"/></svg>
+  </a>
+
+  <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mTitulo">
+    <div class="modal-bg" data-close></div>
+    <div class="modal-box">
+      <button class="icon-btn modal-close" data-close aria-label="Cerrar">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <div id="mContenido"></div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/catalogo.js"></script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+/* Panel de administración */
+(function () {
+  const { esc, precio, imgUrl, post, toast, DEMO } = window.SOL;
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+
+  const st = { token: null, user: null, productos: [], editando: null, imgs: [], subiendo: 0 };
+
+  // ---------- Sesión ----------
+  const guardarToken = t => { try { t ? localStorage.setItem('sol_token', t) : localStorage.removeItem('sol_token'); } catch (e) { } };
+  const leerToken = () => { try { return localStorage.getItem('sol_token'); } catch (e) { return null; } };
+
+  async function api(action, datos = {}) {
+    const r = await post(Object.assign({ action, token: st.token }, datos));
+    if (!r.ok && r.error === 'SESION_EXPIRADA') {
+      salir(true);
+      throw new Error('Tu sesión expiró. Volvé a ingresar.');
+    }
+    if (!r.ok) throw new Error(r.error || 'Error');
+    return r;
+  }
+
+  function mostrarLogin() {
+    $('#vPanel').hidden = true;
+    $('#vLogin').hidden = false;
+    $('#lUser').focus();
+  }
+
+  function mostrarPanel() {
+    $('#vLogin').hidden = true;
+    $('#vPanel').hidden = false;
+    $('#uNombre').textContent = st.user.nombre;
+    $('#uRol').textContent = st.user.rol === 'admin' ? 'Administrador' : 'Editor';
+    $$('[data-admin]').forEach(el => el.hidden = st.user.rol !== 'admin');
+    $('#demoBanner').hidden = !DEMO;
+    cambiarTab('productos');
+    cargarProductos();
+  }
+
+  function salir(silencioso) {
+    if (st.token && !silencioso) post({ action: 'logout', token: st.token }).catch(() => { });
+    st.token = null; st.user = null;
+    guardarToken(null);
+    mostrarLogin();
+  }
+
+  $('#fLogin').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = $('#lBtn');
+    btn.disabled = true; btn.textContent = 'Verificando…';
+    $('#lErr').textContent = '';
+    try {
+      const r = await post({ action: 'login', usuario: $('#lUser').value, clave: $('#lPass').value });
+      if (!r.ok) throw new Error(r.error);
+      st.token = r.token; st.user = r.usuario;
+      guardarToken(r.token);
+      $('#lPass').value = '';
+      mostrarPanel();
+    } catch (err) {
+      $('#lErr').textContent = err.message || 'No se pudo ingresar';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Ingresar';
+    }
+  });
+  $('#bSalir').addEventListener('click', () => salir());
+
+  // ---------- Pestañas ----------
+  function cambiarTab(id) {
+    $$('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === id));
+    $$('.panel').forEach(p => p.hidden = p.id !== 'tab-' + id);
+    if (id === 'ajustes') cargarConfig();
+    if (id === 'usuarios') cargarUsuarios();
+  }
+  $$('.tab').forEach(t => t.addEventListener('click', () => cambiarTab(t.dataset.tab)));
+
+  // ---------- Productos ----------
+  async function cargarProductos() {
+    $('#plist').innerHTML = '<div class="empty">Cargando productos…</div>';
+    try {
+      const r = await api('listarProductos');
+      st.productos = r.productos || [];
+      renderProductos();
+    } catch (err) {
+      $('#plist').innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+    }
+  }
+
+  function renderProductos() {
+    const q = $('#aQ').value.trim().toLowerCase();
+    const cat = $('#aCat').value;
+    const lista = st.productos.filter(p => (!cat || p.categoria === cat) && (!q || p.nombre.toLowerCase().includes(q)));
+
+    const visibles = st.productos.filter(p => p.activo).length;
+    const agotados = st.productos.filter(p => p.stock === 0).length;
+    const usados = st.productos.filter(p => p.condicion === 'Segunda mano').length;
+    $('#stats').innerHTML = `
+      <div class="stat"><b>${st.productos.length}</b><span>Productos</span></div>
+      <div class="stat"><b>${visibles}</b><span>Visibles</span></div>
+      <div class="stat"><b>${usados}</b><span>Segunda mano</span></div>
+      <div class="stat"><b>${agotados}</b><span>Agotados</span></div>`;
+
+    if (!lista.length) {
+      $('#plist').innerHTML = `<div class="empty"><p>${st.productos.length ? 'Sin resultados.' : 'Todavía no hay productos.'}</p>
+        ${st.productos.length ? '' : '<button class="btn btn-primary" onclick="document.getElementById(\'bNuevo\').click()">Cargar el primero</button>'}</div>`;
+      return;
+    }
+    $('#plist').innerHTML = lista.map(p => `
+      <div class="pitem ${p.activo ? '' : 'off'}">
+        <div class="pthumb">${p.imagenes[0]
+          ? `<img src="${esc(imgUrl(p.imagenes[0], 150))}" alt="" loading="lazy" onerror="SOL.imgFallback(this)">`
+          : `<div class="ph">${esc(p.nombre[0] || 'S')}</div>`}</div>
+        <div class="pinfo">
+          <b>${esc(p.nombre)}</b>
+          <span>${esc(precio(p.precio))} · ${esc(p.categoria)}</span>
+          <div class="pmeta">
+            ${p.condicion === 'Segunda mano' ? '<i>Segunda mano</i>' : ''}
+            ${p.destacado ? '<i>Destacado</i>' : ''}
+            ${!p.activo ? '<i class="warn">Oculto</i>' : ''}
+            ${p.stock === 0 ? '<i class="warn">Agotado</i>' : (p.stock != null ? `<i>Stock ${p.stock}</i>` : '')}
+          </div>
+        </div>
+        <div class="pact">
+          <button class="icon-btn" data-vis="${esc(p.id)}" title="${p.activo ? 'Ocultar' : 'Mostrar'}" aria-label="${p.activo ? 'Ocultar' : 'Mostrar'} ${esc(p.nombre)}">
+            <svg class="icon" viewBox="0 0 24 24">${p.activo
+              ? '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>'
+              : '<path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3 3.8M6.6 6.6C3.9 8.4 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/>'}</svg>
+          </button>
+          <button class="icon-btn" data-edit="${esc(p.id)}" title="Editar" aria-label="Editar ${esc(p.nombre)}">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4ZM14 6l4 4"/></svg>
+          </button>
+        </div>
+      </div>`).join('');
+  }
+
+  $('#aQ').addEventListener('input', renderProductos);
+  $('#aCat').addEventListener('change', renderProductos);
+  $('#plist').addEventListener('click', async e => {
+    const ed = e.target.closest('[data-edit]');
+    if (ed) return abrirEditor(st.productos.find(p => p.id === ed.dataset.edit));
+    const vis = e.target.closest('[data-vis]');
+    if (vis) {
+      const p = st.productos.find(x => x.id === vis.dataset.vis);
+      vis.disabled = true;
+      try {
+        await api('guardarProducto', { producto: Object.assign({}, p, { activo: !p.activo }) });
+        p.activo = !p.activo;
+        renderProductos();
+        toast(p.activo ? 'Producto visible' : 'Producto oculto');
+      } catch (err) { toast(err.message, true); vis.disabled = false; }
+    }
+  });
+
+  // ---------- Editor ----------
+  const num = v => { const n = String(v || '').replace(/\D/g, ''); return n === '' ? '' : Number(n); };
+
+  function abrirEditor(p) {
+    st.editando = p || null;
+    st.imgs = p ? p.imagenes.slice() : [];
+    $('#eTitulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
+    $('#eNombre').value = p ? p.nombre : '';
+    $('#eCat').value = p ? p.categoria : 'Ropa';
+    $('#eCond').value = p ? p.condicion : 'Nuevo';
+    $('#ePrecio').value = p && p.precio ? p.precio.toLocaleString('es-PY') : '';
+    $('#eAnt').value = p && p.precio_anterior ? p.precio_anterior.toLocaleString('es-PY') : '';
+    $('#eTalles').value = p ? p.talles.join(', ') : '';
+    $('#eColores').value = p ? p.colores.join(', ') : '';
+    $('#eStock').value = p && p.stock != null ? p.stock : '';
+    $('#eOrden').value = p && p.orden ? p.orden : '';
+    $('#eDesc').value = p ? p.descripcion : '';
+    $('#eDest').checked = p ? p.destacado : false;
+    $('#eAct').checked = p ? p.activo : true;
+    $('#eErr').textContent = '';
+    $('#eDel').hidden = !p;
+    renderImgs();
+    $('#mEdit').hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => $('#eNombre').focus(), 50);
+  }
+
+  function cerrarEditor() {
+    if (st.subiendo > 0 && !confirm('Hay fotos subiéndose. ¿Cerrar igual?')) return;
+    $('#mEdit').hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  $('#bNuevo').addEventListener('click', () => abrirEditor(null));
+  $('#mEdit').addEventListener('click', e => { if (e.target.closest('[data-close]')) cerrarEditor(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#mEdit').hidden) cerrarEditor(); });
+
+  // Formato de miles mientras escribe
+  ['#ePrecio', '#eAnt'].forEach(s => $(s).addEventListener('input', e => {
+    const n = num(e.target.value);
+    e.target.value = n === '' ? '' : n.toLocaleString('es-PY');
+  }));
+
+  function renderImgs() {
+    const cont = $('#eImgs');
+    cont.innerHTML = st.imgs.map((id, i) => `
+      <div class="imgbox ${id.startsWith('cargando:') ? 'loading' : ''}">
+        ${id.startsWith('cargando:') ? '' : `<img src="${esc(imgUrl(id, 300))}" alt="Foto ${i + 1}" onerror="SOL.imgFallback(this)">`}
+        ${id.startsWith('cargando:') ? '' : `<button type="button" class="x" data-rm="${i}" aria-label="Quitar foto ${i + 1}">✕</button>`}
+        ${i > 0 && !id.startsWith('cargando:') ? `<button type="button" class="mv" data-first="${i}" aria-label="Usar como principal" title="Usar como principal">★</button>` : ''}
+        ${i === 0 && !id.startsWith('cargando:') ? '<span class="main">Principal</span>' : ''}
+      </div>`).join('') + `
+      <label class="upload" for="eFile">
+        <span><svg class="icon" viewBox="0 0 24 24" style="margin:0 auto 4px"><path d="M12 5v14M5 12h14"/></svg>Agregar fotos</span>
+      </label>`;
+  }
+
+  $('#eImgs').addEventListener('click', e => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { st.imgs.splice(Number(rm.dataset.rm), 1); return renderImgs(); }
+    const f = e.target.closest('[data-first]');
+    if (f) { const [x] = st.imgs.splice(Number(f.dataset.first), 1); st.imgs.unshift(x); renderImgs(); }
+  });
+
+  /** Reduce la imagen en el navegador antes de subirla (máx. 1600 px, JPEG) */
+  function reducir(file) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const max = 1600;
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        res(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen')); };
+      img.src = url;
+    });
+  }
+
+  $('#eFile').addEventListener('change', async e => {
+    const archivos = Array.from(e.target.files || []).slice(0, 8);
+    e.target.value = '';
+    for (const f of archivos) {
+      const marca = 'cargando:' + Math.random();
+      st.imgs.push(marca);
+      st.subiendo++;
+      renderImgs();
+      try {
+        const b64 = await reducir(f);
+        const r = await api('subirImagen', { nombre: f.name.replace(/\.\w+$/, '') + '.jpg', mime: 'image/jpeg', base64: b64 });
+        const i = st.imgs.indexOf(marca);
+        if (i >= 0) st.imgs[i] = r.id;
+      } catch (err) {
+        st.imgs = st.imgs.filter(x => x !== marca);
+        toast('Error al subir ' + f.name + ': ' + err.message, true);
+      } finally {
+        st.subiendo--;
+        renderImgs();
+      }
+    }
+  });
+
+  $('#fProd').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('#eErr').textContent = '';
+    if (st.subiendo > 0) return $('#eErr').textContent = 'Esperá a que terminen de subir las fotos.';
+    const nombre = $('#eNombre').value.trim();
+    const pr = num($('#ePrecio').value);
+    if (!nombre) return $('#eErr').textContent = 'Completá el nombre.';
+    if (pr === '' || pr <= 0) return $('#eErr').textContent = 'Ingresá un precio válido.';
+
+    const lista = s => s.split(',').map(x => x.trim()).filter(Boolean);
+    const producto = {
+      id: st.editando ? st.editando.id : '',
+      nombre,
+      categoria: $('#eCat').value,
+      condicion: $('#eCond').value,
+      precio: pr,
+      precio_anterior: num($('#eAnt').value) || 0,
+      talles: lista($('#eTalles').value),
+      colores: lista($('#eColores').value),
+      stock: $('#eStock').value.trim() === '' ? null : num($('#eStock').value),
+      orden: num($('#eOrden').value) || 0,
+      descripcion: $('#eDesc').value.trim(),
+      imagenes: st.imgs.filter(x => !x.startsWith('cargando:')),
+      destacado: $('#eDest').checked,
+      activo: $('#eAct').checked
+    };
+
+    const btn = $('#eSave');
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    try {
+      const r = await api('guardarProducto', { producto });
+      producto.id = r.id;
+      const i = st.productos.findIndex(p => p.id === r.id);
+      if (i >= 0) st.productos[i] = producto; else st.productos.unshift(producto);
+      renderProductos();
+      $('#mEdit').hidden = true;
+      document.body.style.overflow = '';
+      toast('Producto guardado');
+    } catch (err) {
+      $('#eErr').textContent = err.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Guardar';
+    }
+  });
+
+  $('#eDel').addEventListener('click', async () => {
+    const p = st.editando;
+    if (!p || !confirm(`¿Eliminar “${p.nombre}”? Sus fotos se enviarán a la papelera de Drive.`)) return;
+    try {
+      await api('eliminarProducto', { id: p.id });
+      st.productos = st.productos.filter(x => x.id !== p.id);
+      renderProductos();
+      $('#mEdit').hidden = true;
+      document.body.style.overflow = '';
+      toast('Producto eliminado');
+    } catch (err) { $('#eErr').textContent = err.message; }
+  });
+
+  // ---------- Ajustes ----------
+  async function cargarConfig() {
+    try {
+      const r = await api('leerConfig');
+      $$('#fCfg [data-k]').forEach(el => el.value = r.config[el.dataset.k] || '');
+    } catch (err) { toast(err.message, true); }
+  }
+  $('#fCfg').addEventListener('submit', async e => {
+    e.preventDefault();
+    const config = {};
+    $$('#fCfg [data-k]').forEach(el => config[el.dataset.k] = el.value.trim());
+    config.whatsapp = config.whatsapp.replace(/\D/g, '');
+    try { await api('guardarConfig', { config }); toast('Datos guardados'); }
+    catch (err) { toast(err.message, true); }
+  });
+
+  // ---------- Usuarios ----------
+  async function cargarUsuarios() {
+    $('#ulist').innerHTML = 'Cargando…';
+    try {
+      const r = await api('listarUsuarios');
+      $('#ulist').innerHTML = r.usuarios.map(u => `
+        <div class="uitem">
+          <div class="grow"><b>${esc(u.nombre)}</b><br><span>@${esc(u.usuario)} · ${u.rol === 'admin' ? 'Administrador' : 'Editor'}${u.activo ? '' : ' · <b style="color:var(--danger)">Desactivado</b>'}</span></div>
+          <button class="btn mini" data-reset="${esc(u.usuario)}">Nueva clave</button>
+          ${u.usuario !== st.user.usuario ? `<button class="btn mini" data-toggle="${esc(u.usuario)}" data-on="${u.activo}">${u.activo ? 'Desactivar' : 'Activar'}</button>` : ''}
+        </div>`).join('');
+    } catch (err) { $('#ulist').textContent = err.message; }
+  }
+  $('#ulist').addEventListener('click', async e => {
+    const t = e.target.closest('[data-toggle]');
+    const rs = e.target.closest('[data-reset]');
+    try {
+      if (t) {
+        await api('estadoUsuario', { usuario: t.dataset.toggle, activo: t.dataset.on !== 'true' });
+        toast('Usuario actualizado'); cargarUsuarios();
+      }
+      if (rs) {
+        const clave = prompt(`Nueva clave para @${rs.dataset.reset} (mínimo 8 caracteres):`);
+        if (!clave) return;
+        await api('resetClave', { usuario: rs.dataset.reset, clave });
+        toast('Clave actualizada');
+      }
+    } catch (err) { toast(err.message, true); }
+  });
+  $('#fUser').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      await api('crearUsuario', { usuario: $('#nuUser').value.trim(), nombre: $('#nuNombre').value.trim(), clave: $('#nuClave').value, rol: $('#nuRol').value });
+      e.target.reset();
+      toast('Usuario creado');
+      cargarUsuarios();
+    } catch (err) { toast(err.message, true); }
+  });
+
+  // ---------- Mi cuenta ----------
+  $('#fClave').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      await api('cambiarClave', { actual: $('#kAct').value, nueva: $('#kNue').value });
+      e.target.reset();
+      toast('Clave actualizada');
+    } catch (err) { toast(err.message, true); }
+  });
+
+  // ---------- Inicio ----------
+  (async function iniciar() {
+    st.token = leerToken();
+    if (!st.token) return mostrarLogin();
+    try {
+      const r = await post({ action: 'yo', token: st.token });
+      if (!r.ok) throw new Error();
+      st.user = r.usuario;
+      mostrarPanel();
+    } catch (e) {
+      guardarToken(null);
+      mostrarLogin();
+    }
+  })();
+})();
