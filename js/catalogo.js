@@ -7,19 +7,18 @@
   const ICONO_POR_DEFECTO = { 'Ropa': 'ropa', 'Accesorios': 'acc', 'Lencería': 'lenc', 'Perfumes': 'perf' };
   let FILTROS = [{ id: 'todo', label: 'Todo', icon: 'todo', fn: () => true }];
 
-  /** Arma los botones: Todo + categorías con productos + Segunda mano */
+  /** Arma los botones: Todo + categorías visibles + Segunda mano */
   function construirFiltros() {
     let cats = estado.categorias;
     if (!cats || !cats.length) {
-      const vistos = [];
+      const vistos = Object.keys(ICONO_POR_DEFECTO);
       estado.productos.forEach(p => { if (p.categoria && !vistos.includes(p.categoria)) vistos.push(p.categoria); });
       cats = vistos.map(n => ({ nombre: n, icono: ICONO_POR_DEFECTO[n] || 'etiqueta' }));
     }
-    const conProductos = cats.filter(c => estado.productos.some(p => p.categoria === c.nombre));
+    // Se muestran todas las categorías visibles (se ocultan desde el panel)
     FILTROS = [{ id: 'todo', label: 'Todo', icon: 'todo', fn: () => true }]
-      .concat(conProductos.map((c, i) => ({ id: 'c' + i, label: c.nombre, icon: c.icono, fn: p => p.categoria === c.nombre })));
-    if (estado.productos.some(p => p.condicion === 'Segunda mano'))
-      FILTROS.push({ id: 'usada', label: 'Segunda mano', icon: 'usada', fn: p => p.condicion === 'Segunda mano' });
+      .concat(cats.map((c, i) => ({ id: 'c' + i, label: c.nombre, icon: c.icono, fn: p => p.categoria === c.nombre })));
+    FILTROS.push({ id: 'usada', label: 'Segunda mano', icon: 'usada', fn: p => p.condicion === 'Segunda mano' });
     if (!FILTROS.some(f => f.id === estado.filtro)) estado.filtro = 'todo';
   }
 
@@ -80,6 +79,9 @@
     $('#contador').textContent = lista.length === 1 ? '1 producto' : `${lista.length} productos`;
     $('#grid').innerHTML = lista.map(tarjeta).join('');
     $('#vacio').hidden = lista.length > 0;
+    $('#vacio p').textContent = estado.q || f.id === 'todo'
+      ? 'No encontramos productos con ese filtro.'
+      : `Pronto vamos a tener productos en ${f.label}.`;
   }
 
   function renderDestacados() {
