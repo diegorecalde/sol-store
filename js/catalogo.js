@@ -54,7 +54,7 @@
           ${agotado ? '<span class="badge sold">Agotado</span>' : ''}
         </div>
         <div class="card-body">
-          <span class="card-cat">${esc(p.categoria)}</span>
+          <span class="card-cat">${esc(p.categoria)}${p.codigo ? `<span class="card-cod">${esc(p.codigo)}</span>` : ''}</span>
           <span class="card-name">${esc(p.nombre)}</span>
           <span class="price"><b>${esc(precio(p.precio))}</b>${p.precio_anterior > p.precio ? `<s>${esc(precio(p.precio_anterior))}</s>` : ''}</span>
         </div>
@@ -68,7 +68,7 @@
     const f = FILTROS.find(x => x.id === estado.filtro) || FILTROS[0];
     const q = norm(estado.q);
     let lista = estado.productos.filter(f.fn).filter(p =>
-      !q || norm([p.nombre, p.categoria, p.condicion, p.descripcion, (p.colores || []).join(' ')].join(' ')).includes(q));
+      !q || norm([p.codigo, p.nombre, p.categoria, p.condicion, p.descripcion, (p.colores || []).join(' ')].join(' ')).includes(q));
 
     if (estado.orden === 'menor') lista.sort((a, b) => a.precio - b.precio);
     else if (estado.orden === 'mayor') lista.sort((a, b) => b.precio - a.precio);
@@ -142,6 +142,7 @@
           <div class="tags">
             <span class="tag">${esc(p.categoria)}</span>
             <span class="tag">${esc(p.condicion)}</span>
+            ${p.codigo ? `<span class="tag tag-cod">Cód. ${esc(p.codigo)}</span>` : ''}
             ${agotado ? '<span class="tag" style="background:#f6dcd6;color:#8d2f20">Agotado</span>' : ''}
           </div>
           <h3 id="mTitulo">${esc(p.nombre)}</h3>
@@ -161,7 +162,9 @@
       </div>`;
 
     const actualizarWa = () => {
-      const partes = [`¡Hola! Me interesa este producto:`, `• ${p.nombre}`, `• Precio: ${precio(p.precio)}`];
+      const partes = [`¡Hola! Me interesa este producto:`, `• ${p.nombre}`];
+      if (p.codigo) partes.push(`• Código: ${p.codigo}`);
+      partes.push(`• Precio: ${precio(p.precio)}`);
       if (sel.talle) partes.push(`• Talle: ${sel.talle}`);
       if (sel.color) partes.push(`• Color: ${sel.color}`);
       partes.push('', location.origin + location.pathname + '#p=' + encodeURIComponent(p.id));

@@ -96,3 +96,4 @@ body.admin { background: var(--canvas); }
 .icon-pick button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--muted); }
 .icon-pick button[aria-checked="true"] { border-color: var(--accent); background: var(--accent-wash); color: #6f5230; }
 .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.pinfo .pcod { display: inline; font-size: 12px; font-weight: 600; color: var(--ink); letter-spacing: .02em; }

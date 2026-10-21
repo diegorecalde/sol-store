@@ -72,16 +72,16 @@
 
   // ================= MODO DEMO =================
   const demoProductos = [
-    { id: 'd1', nombre: 'Vestido midi de lino', categoria: 'Ropa', condicion: 'Nuevo', precio: 245000, precio_anterior: 290000, talles: ['S', 'M', 'L'], colores: ['Arena', 'Blanco'], descripcion: 'Vestido fresco de lino, ideal para el verano.\nLargo midi, con cinto.', imagenes: [], stock: 4, destacado: true, activo: true },
-    { id: 'd2', nombre: 'Blazer oversize beige', categoria: 'Ropa', condicion: 'Segunda mano', precio: 120000, precio_anterior: 0, talles: ['M'], colores: ['Beige'], descripcion: 'Excelente estado, usado dos veces.', imagenes: [], stock: 1, destacado: true, activo: true },
-    { id: 'd3', nombre: 'Cartera de cuero tejida', categoria: 'Accesorios', condicion: 'Nuevo', precio: 180000, precio_anterior: 0, talles: [], colores: ['Camel', 'Negro'], descripcion: 'Cuero genuino, cierre magnético.', imagenes: [], stock: 3, destacado: true, activo: true },
-    { id: 'd4', nombre: 'Conjunto de encaje', categoria: 'Lencería', condicion: 'Nuevo', precio: 95000, precio_anterior: 0, talles: ['S', 'M', 'L'], colores: ['Nude', 'Negro'], descripcion: 'Conjunto de encaje suave, con aro.', imagenes: [], stock: 6, destacado: false, activo: true },
-    { id: 'd5', nombre: 'Perfume floral 100 ml', categoria: 'Perfumes', condicion: 'Nuevo', precio: 210000, precio_anterior: 250000, talles: [], colores: [], descripcion: 'Notas de jazmín, vainilla y almizcle.', imagenes: [], stock: 5, destacado: true, activo: true },
-    { id: 'd6', nombre: 'Jean mom fit', categoria: 'Ropa', condicion: 'Segunda mano', precio: 85000, precio_anterior: 0, talles: ['38'], colores: ['Celeste'], descripcion: 'Muy buen estado.', imagenes: [], stock: 1, destacado: false, activo: true },
-    { id: 'd7', nombre: 'Aros dorados argolla', categoria: 'Accesorios', condicion: 'Nuevo', precio: 45000, precio_anterior: 0, talles: [], colores: ['Dorado'], descripcion: 'Acero quirúrgico bañado en oro.', imagenes: [], stock: 10, destacado: false, activo: true },
-    { id: 'd8', nombre: 'Camisa de seda', categoria: 'Ropa', condicion: 'Nuevo', precio: 160000, precio_anterior: 0, talles: ['S', 'M'], colores: ['Marfil'], descripcion: 'Seda satinada, corte recto.', imagenes: [], stock: 0, destacado: false, activo: true },
-    { id: 'd9', nombre: 'Body de microfibra', categoria: 'Lencería', condicion: 'Nuevo', precio: 75000, precio_anterior: 0, talles: ['S', 'M', 'L', 'XL'], colores: ['Negro', 'Piel'], descripcion: 'Sin costuras, efecto segunda piel.', imagenes: [], stock: 8, destacado: false, activo: true },
-    { id: 'd10', nombre: 'Body splash vainilla', categoria: 'Perfumes', condicion: 'Nuevo', precio: 60000, precio_anterior: 0, talles: [], colores: [], descripcion: '250 ml, fragancia dulce y suave.', imagenes: [], stock: 7, destacado: false, activo: true }
+    { id: 'd1', codigo: 'R001', nombre: 'Vestido midi de lino', categoria: 'Ropa', condicion: 'Nuevo', precio: 245000, precio_anterior: 290000, talles: ['S', 'M', 'L'], colores: ['Arena', 'Blanco'], descripcion: 'Vestido fresco de lino, ideal para el verano.\nLargo midi, con cinto.', imagenes: [], stock: 4, destacado: true, activo: true },
+    { id: 'd2', codigo: 'R002', nombre: 'Blazer oversize beige', categoria: 'Ropa', condicion: 'Segunda mano', precio: 120000, precio_anterior: 0, talles: ['M'], colores: ['Beige'], descripcion: 'Excelente estado, usado dos veces.', imagenes: [], stock: 1, destacado: true, activo: true },
+    { id: 'd3', codigo: 'A003', nombre: 'Cartera de cuero tejida', categoria: 'Accesorios', condicion: 'Nuevo', precio: 180000, precio_anterior: 0, talles: [], colores: ['Camel', 'Negro'], descripcion: 'Cuero genuino, cierre magnético.', imagenes: [], stock: 3, destacado: true, activo: true },
+    { id: 'd4', codigo: 'L004', nombre: 'Conjunto de encaje', categoria: 'Lencería', condicion: 'Nuevo', precio: 95000, precio_anterior: 0, talles: ['S', 'M', 'L'], colores: ['Nude', 'Negro'], descripcion: 'Conjunto de encaje suave, con aro.', imagenes: [], stock: 6, destacado: false, activo: true },
+    { id: 'd5', codigo: 'P005', nombre: 'Perfume floral 100 ml', categoria: 'Perfumes', condicion: 'Nuevo', precio: 210000, precio_anterior: 250000, talles: [], colores: [], descripcion: 'Notas de jazmín, vainilla y almizcle.', imagenes: [], stock: 5, destacado: true, activo: true },
+    { id: 'd6', codigo: 'R006', nombre: 'Jean mom fit', categoria: 'Ropa', condicion: 'Segunda mano', precio: 85000, precio_anterior: 0, talles: ['38'], colores: ['Celeste'], descripcion: 'Muy buen estado.', imagenes: [], stock: 1, destacado: false, activo: true },
+    { id: 'd7', codigo: 'A007', nombre: 'Aros dorados argolla', categoria: 'Accesorios', condicion: 'Nuevo', precio: 45000, precio_anterior: 0, talles: [], colores: ['Dorado'], descripcion: 'Acero quirúrgico bañado en oro.', imagenes: [], stock: 10, destacado: false, activo: true },
+    { id: 'd8', codigo: 'R008', nombre: 'Camisa de seda', categoria: 'Ropa', condicion: 'Nuevo', precio: 160000, precio_anterior: 0, talles: ['S', 'M'], colores: ['Marfil'], descripcion: 'Seda satinada, corte recto.', imagenes: [], stock: 0, destacado: false, activo: true },
+    { id: 'd9', codigo: 'L009', nombre: 'Body de microfibra', categoria: 'Lencería', condicion: 'Nuevo', precio: 75000, precio_anterior: 0, talles: ['S', 'M', 'L', 'XL'], colores: ['Negro', 'Piel'], descripcion: 'Sin costuras, efecto segunda piel.', imagenes: [], stock: 8, destacado: false, activo: true },
+    { id: 'd10', codigo: 'P010', nombre: 'Body splash vainilla', categoria: 'Perfumes', condicion: 'Nuevo', precio: 60000, precio_anterior: 0, talles: [], colores: [], descripcion: '250 ml, fragancia dulce y suave.', imagenes: [], stock: 7, destacado: false, activo: true }
   ];
   let demoConfig = { nombre_tienda: 'Sol Store', whatsapp: CFG.WHATSAPP_POR_DEFECTO || '', instagram: 'solstore', mensaje_bienvenida: 'Ropa nueva y de segunda mano, accesorios, lencería y perfumes.', direccion: 'Asunción, Paraguay' };
   let demoCategorias = [
@@ -107,8 +107,12 @@
       case 'guardarProducto': {
         const p = Object.assign({}, b.producto);
         const i = demoProductos.findIndex(x => x.id === p.id);
+        p.codigo = String(p.codigo || '').trim().toUpperCase();
+        if (p.codigo && demoProductos.some(x => x.codigo === p.codigo && x.id !== p.id))
+          return Promise.resolve({ ok: false, error: 'El código ' + p.codigo + ' ya lo usa otro producto' });
+        if (!p.codigo) p.codigo = (i >= 0 && demoProductos[i].codigo) || ((p.categoria || 'P').normalize('NFD').replace(/[^A-Za-z]/g, '').charAt(0).toUpperCase() + String(demoProductos.length + 1).padStart(3, '0'));
         if (i >= 0) demoProductos[i] = p; else { p.id = 'd' + Date.now(); demoProductos.unshift(p); }
-        return r({ id: p.id });
+        return r({ id: p.id, codigo: p.codigo });
       }
       case 'eliminarProducto': { const i = demoProductos.findIndex(x => x.id === b.id); if (i >= 0) demoProductos.splice(i, 1); return r(); }
       case 'subirImagen': return r({ id: 'data:' + b.mime + ';base64,' + b.base64 });

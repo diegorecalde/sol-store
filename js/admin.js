@@ -91,7 +91,8 @@
   function renderProductos() {
     const q = $('#aQ').value.trim().toLowerCase();
     const cat = $('#aCat').value;
-    const lista = st.productos.filter(p => (!cat || p.categoria === cat) && (!q || p.nombre.toLowerCase().includes(q)));
+    const lista = st.productos.filter(p => (!cat || p.categoria === cat) &&
+      (!q || p.nombre.toLowerCase().includes(q) || String(p.codigo || '').toLowerCase().includes(q)));
 
     const visibles = st.productos.filter(p => p.activo).length;
     const agotados = st.productos.filter(p => p.stock === 0).length;
@@ -114,7 +115,7 @@
           : `<div class="ph">${esc(p.nombre[0] || 'S')}</div>`}</div>
         <div class="pinfo">
           <b>${esc(p.nombre)}</b>
-          <span>${esc(precio(p.precio))} · ${esc(p.categoria)}</span>
+          <span>${p.codigo ? `<b class="pcod">${esc(p.codigo)}</b> · ` : ''}${esc(precio(p.precio))} · ${esc(p.categoria)}</span>
           <div class="pmeta">
             ${p.condicion === 'Segunda mano' ? '<i>Segunda mano</i>' : ''}
             ${p.destacado ? '<i>Destacado</i>' : ''}
@@ -161,6 +162,7 @@
     st.imgs = p ? p.imagenes.slice() : [];
     $('#eTitulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
     $('#eNombre').value = p ? p.nombre : '';
+    $('#eCod').value = p ? (p.codigo || '') : '';
     llenarSelects(p ? p.categoria : '');
     $('#eCat').value = p ? p.categoria : ((st.categorias.find(c => c.activo) || st.categorias[0] || {}).nombre || '');
     $('#eCond').value = p ? p.condicion : 'Nuevo';
@@ -272,11 +274,14 @@
     const pr = num($('#ePrecio').value);
     if (!nombre) return $('#eErr').textContent = 'Completá el nombre.';
     if (pr === '' || pr <= 0) return $('#eErr').textContent = 'Ingresá un precio válido.';
+    const cod = $('#eCod').value.trim().toUpperCase().replace(/\s+/g, '');
+    if (cod && !/^[A-Z0-9-]{2,12}$/.test(cod)) return $('#eErr').textContent = 'El código debe tener de 2 a 12 letras, números o guiones.';
 
     const lista = s => s.split(',').map(x => x.trim()).filter(Boolean);
     const producto = {
       id: st.editando ? st.editando.id : '',
       nombre,
+      codigo: $('#eCod').value.trim().toUpperCase().replace(/\s+/g, ''),
       categoria: $('#eCat').value,
       condicion: $('#eCond').value,
       precio: pr,
@@ -296,12 +301,13 @@
     try {
       const r = await api('guardarProducto', { producto });
       producto.id = r.id;
+      if (r.codigo) producto.codigo = r.codigo;
       const i = st.productos.findIndex(p => p.id === r.id);
       if (i >= 0) st.productos[i] = producto; else st.productos.unshift(producto);
       renderProductos();
       $('#mEdit').hidden = true;
       document.body.style.overflow = '';
-      toast('Producto guardado');
+      toast(producto.codigo ? `Producto guardado · ${producto.codigo}` : 'Producto guardado');
     } catch (err) {
       $('#eErr').textContent = err.message;
     } finally {

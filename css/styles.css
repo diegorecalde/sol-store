@@ -176,6 +176,8 @@ a { color: inherit; }
 .badge.used { background: var(--ink); color: #fff; }
 .badge.sold { left: auto; right: 10px; background: var(--danger); color: #fff; }
 .card-body { padding: 0 8px; display: flex; flex-direction: column; gap: 4px; }
+.card-cod { float: right; text-transform: none; letter-spacing: .02em; color: var(--ink); font-weight: 600; }
+.tag.tag-cod { background: var(--ink); color: #fff; letter-spacing: .03em; }
 .card-cat { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 500; }
 .card-name { font-size: 15px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }

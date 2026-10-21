@@ -22,7 +22,8 @@ const MAX_INTENTOS_LOGIN = 5;          // bloqueo temporal tras 5 intentos falli
 const COLUMNAS_PRODUCTOS = [
   'id', 'nombre', 'categoria', 'condicion', 'precio', 'precio_anterior',
   'talles', 'colores', 'descripcion', 'imagenes', 'stock',
-  'destacado', 'activo', 'orden', 'creado', 'actualizado'
+  'destacado', 'activo', 'orden', 'creado', 'actualizado',
+  'codigo' // agregado después: siempre al final para no correr columnas existentes
 ];
 const COLUMNAS_USUARIOS = ['usuario', 'nombre', 'hash', 'salt', 'rol', 'activo', 'creado'];
 
@@ -124,7 +125,7 @@ function doPost(e) {
     switch (accion) {
       case 'logout': return json_(logout_(datos.token));
       case 'yo': return json_({ ok: true, usuario: sesion });
-      case 'listarProductos': return json_({ ok: true, productos: leerProductos_(false) });
+      case 'listarProductos': return json_(conLock_(() => { asignarCodigosFaltantes_(); return { ok: true, productos: leerProductos_(false) }; }));
       case 'guardarProducto': return json_(conLock_(() => guardarProducto_(datos.producto, sesion)));
       case 'eliminarProducto': return json_(conLock_(() => eliminarProducto_(datos.id)));
       case 'subirImagen': return json_(subirImagen_(datos));
@@ -219,7 +220,8 @@ function normalizar_(p) {
     activo: p.activo === true || String(p.activo).toUpperCase() === 'TRUE',
     orden: Number(p.orden) || 0,
     creado: p.creado instanceof Date ? p.creado.toISOString() : String(p.creado || ''),
-    actualizado: p.actualizado instanceof Date ? p.actualizado.toISOString() : String(p.actualizado || '')
+    actualizado: p.actualizado instanceof Date ? p.actualizado.toISOString() : String(p.actualizado || ''),
+    codigo: String(p.codigo || '').trim().toUpperCase()
   };
 }
 
@@ -229,6 +231,7 @@ function guardarProducto_(p, sesion) {
   if (CONDICIONES.indexOf(p.condicion) < 0) throw new Error('Condición no válida');
 
   const hoja = SpreadsheetApp.getActive().getSheetByName(HOJA_PRODUCTOS);
+  asegurarColumnas_(hoja);
   const ahora = new Date();
   const unir = v => Array.isArray(v) ? v.map(s => String(s).trim()).filter(Boolean).join(', ') : String(v || '');
 
@@ -248,11 +251,25 @@ function guardarProducto_(p, sesion) {
     activo: p.activo !== false,
     orden: Number(p.orden) || '',
     creado: ahora,
-    actualizado: ahora
+    actualizado: ahora,
+    codigo: ''
   };
 
   const ids = hoja.getRange(1, 1, hoja.getLastRow(), 1).getValues().map(r => String(r[0]));
   const idx = p.id ? ids.indexOf(String(p.id)) : -1;
+
+  // Código corto: el que se escribió, el que ya tenía o uno nuevo automático
+  const colCod = COLUMNAS_PRODUCTOS.indexOf('codigo') + 1;
+  const codigos = hoja.getRange(1, colCod, hoja.getLastRow(), 1).getValues().map(r => String(r[0]).trim().toUpperCase());
+  const otros = codigos.filter((c, i) => i > 0 && i !== idx && c);
+  let codigo = String(p.codigo || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (codigo) {
+    if (!/^[A-Z0-9-]{2,12}$/.test(codigo)) throw new Error('El código debe tener de 2 a 12 letras, números o guiones');
+    if (otros.indexOf(codigo) >= 0) throw new Error('El código ' + codigo + ' ya lo usa otro producto');
+  } else {
+    codigo = (idx > 0 && codigos[idx]) || generarCodigo_(fila.categoria, otros);
+  }
+  fila.codigo = codigo;
 
   if (idx > 0) {
     const nroFila = idx + 1;
@@ -262,7 +279,48 @@ function guardarProducto_(p, sesion) {
     hoja.appendRow(COLUMNAS_PRODUCTOS.map(c => fila[c]));
   }
   limpiarCache_();
-  return { ok: true, id: fila.id };
+  return { ok: true, id: fila.id, codigo: fila.codigo };
+}
+
+/** Agrega en la fila de encabezados las columnas nuevas que falten (al final) */
+function asegurarColumnas_(hoja) {
+  const n = COLUMNAS_PRODUCTOS.length;
+  const enc = hoja.getRange(1, 1, 1, n).getValues()[0];
+  if (enc[n - 1] !== COLUMNAS_PRODUCTOS[n - 1]) {
+    hoja.getRange(1, 1, 1, n).setValues([COLUMNAS_PRODUCTOS]).setFontWeight('bold').setBackground('#f4ede3');
+  }
+}
+
+/** Primera letra de la categoría + número correlativo de 3 cifras. Ej.: R001 */
+function generarCodigo_(categoria, existentes) {
+  const letra = (String(categoria || 'P').normalize('NFD').replace(/[^A-Za-z]/g, '').charAt(0) || 'P').toUpperCase();
+  const max = existentes.reduce((m, c) => {
+    const n = String(c).match(/(\d+)$/);
+    return n ? Math.max(m, Number(n[1])) : m;
+  }, 0);
+  return letra + String(max + 1).padStart(3, '0');
+}
+
+/** Asigna código a los productos que todavía no tienen */
+function asignarCodigosFaltantes_() {
+  const hoja = SpreadsheetApp.getActive().getSheetByName(HOJA_PRODUCTOS);
+  if (hoja.getLastRow() < 2) return;
+  asegurarColumnas_(hoja);
+  const n = hoja.getLastRow() - 1;
+  const colCat = COLUMNAS_PRODUCTOS.indexOf('categoria') + 1;
+  const colCod = COLUMNAS_PRODUCTOS.indexOf('codigo') + 1;
+  const ids = hoja.getRange(2, 1, n, 1).getValues();
+  const cats = hoja.getRange(2, colCat, n, 1).getValues();
+  const rango = hoja.getRange(2, colCod, n, 1);
+  const cods = rango.getValues().map(r => String(r[0]).trim().toUpperCase());
+  let cambio = false;
+  for (let i = 0; i < n; i++) {
+    if (!cods[i] && String(ids[i][0]).trim()) {
+      cods[i] = generarCodigo_(cats[i][0], cods.filter(Boolean));
+      cambio = true;
+    }
+  }
+  if (cambio) { rango.setValues(cods.map(c => [c])); limpiarCache_(); }
 }
 
 function eliminarProducto_(id) {
