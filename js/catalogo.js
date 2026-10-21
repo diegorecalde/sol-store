@@ -101,7 +101,7 @@
     if (c.mensaje_bienvenida) $('#bienvenida').textContent = c.mensaje_bienvenida;
     $('#footDir').textContent = c.direccion || '';
     const general = waLink(`¡Hola ${c.nombre_tienda || 'Sol Store'}! Quisiera hacer una consulta.`);
-    ['#fabWa', '#topWa', '#footWa'].forEach(s => $(s).href = general);
+    ['#fabWa', '#footWa'].forEach(s => $(s).href = general);
     if (c.instagram) {
       const ig = $('#footIg');
       ig.hidden = false;
