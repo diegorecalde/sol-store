@@ -10,6 +10,15 @@
   /** Convierte un ID de Drive (o URL) en URL de imagen */
   function imgUrl(ref, ancho = 800) {
     if (!ref) return '';
+    // Fotos de Unsplash: pedir el ancho justo para cada uso
+    if (/^https:\/\/images\.unsplash\.com\//.test(ref)) {
+      try {
+        const u = new URL(ref);
+        u.searchParams.set('w', ancho); u.searchParams.set('h', ancho);
+        u.searchParams.set('fit', 'crop'); u.searchParams.set('auto', 'format');
+        return u.toString();
+      } catch (e) { return ref; }
+    }
     if (/^(https?:|data:)/.test(ref)) return ref;
     return 'https://lh3.googleusercontent.com/d/' + encodeURIComponent(ref) + '=w' + ancho;
   }

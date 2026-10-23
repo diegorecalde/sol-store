@@ -13,6 +13,7 @@ sol-store/
 ├── js/admin.js         → Lógica del panel
 ├── img/                → Logo e ícono
 ├── apps-script/Code.js → Backend (se sube con clasp, NO se publica)
+├── apps-script/Ejemplos.js → 80 productos de ejemplo (cargar / borrar)
 └── netlify.toml        → Cabeceras de seguridad
 ```
 
@@ -102,3 +103,10 @@ Cada `git push` vuelve a publicar el sitio automáticamente.
 - **Fotos:** se guardan en Drive compartidas como "cualquiera con el enlace". No subas ahí nada privado.
 - **Límites gratuitos** de Apps Script: holgados para una tienda chica (miles de visitas por día).
 - **Dominio propio:** en Netlify → **Domain management → Add a domain**.
+
+## Datos de ejemplo
+
+En el editor de Apps Script:
+
+- **`cargarEjemplos`** → agrega 80 productos (20 por categoría) con fotos de Unsplash y precios en Gs.
+- **`borrarEjemplos`** → quita solo esos productos (su id empieza con `ej-`); los reales no se tocan.
