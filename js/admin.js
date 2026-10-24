@@ -220,27 +220,56 @@
     if (f) { const [x] = st.imgs.splice(Number(f.dataset.first), 1); st.imgs.unshift(x); renderImgs(); }
   });
 
-  /** Reduce la imagen en el navegador antes de subirla (máx. 1600 px, JPEG) */
-  function reducir(file) {
+  /** Lee un archivo como imagen; resuelve con el <img> o rechaza si el navegador no lo entiende */
+  function cargarImagen(blob) {
     return new Promise((res, rej) => {
       const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const max = 1600;
-        const k = Math.min(1, max / Math.max(img.width, img.height));
-        const c = document.createElement('canvas');
-        c.width = Math.round(img.width * k);
-        c.height = Math.round(img.height * k);
-        const ctx = c.getContext('2d');
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, c.width, c.height);
-        ctx.drawImage(img, 0, 0, c.width, c.height);
-        URL.revokeObjectURL(url);
-        res(c.toDataURL('image/jpeg', 0.85).split(',')[1]);
-      };
+      const url = URL.createObjectURL(blob);
+      img.onload = () => { URL.revokeObjectURL(url); res(img); };
       img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('No se pudo leer la imagen')); };
       img.src = url;
     });
+  }
+
+  const esHeic = f => /image\/hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name);
+
+  /** Carga el conversor de HEIC (fotos de iPhone) solo cuando hace falta */
+  let heicLib = null;
+  function cargarHeic2any() {
+    if (window.heic2any) return Promise.resolve(window.heic2any);
+    if (heicLib) return heicLib;
+    heicLib = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+      s.onload = () => window.heic2any ? res(window.heic2any) : rej(new Error('No se pudo cargar el conversor de fotos HEIC'));
+      s.onerror = () => { heicLib = null; rej(new Error('No se pudo cargar el conversor de fotos HEIC. Revisá la conexión.')); };
+      document.head.appendChild(s);
+    });
+    return heicLib;
+  }
+
+  /** Reduce la imagen en el navegador antes de subirla (máx. 1600 px, JPEG). Acepta HEIC de iPhone. */
+  async function reducir(file) {
+    let img;
+    try {
+      img = await cargarImagen(file);          // Safari abre HEIC de forma nativa
+    } catch (e) {
+      if (!esHeic(file)) throw new Error('Formato no compatible. Usá fotos JPG, PNG, WEBP o HEIC.');
+      const heic2any = await cargarHeic2any();   // Chrome y otros: convertir primero
+      let jpg = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      if (Array.isArray(jpg)) jpg = jpg[0];
+      img = await cargarImagen(jpg);
+    }
+    const max = 1600;
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k);
+    c.height = Math.round(img.naturalHeight * k);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.85).split(',')[1];
   }
 
   $('#eFile').addEventListener('change', async e => {
