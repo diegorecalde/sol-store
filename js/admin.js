@@ -233,15 +233,16 @@
 
   const esHeic = f => /image\/hei[cf]/i.test(f.type) || /\.hei[cf]$/i.test(f.name);
 
-  /** Carga el conversor de HEIC (fotos de iPhone) solo cuando hace falta */
+  /** Carga el conversor de HEIC (fotos de iPhone) solo cuando hace falta.
+   *  heic-to usa una versión actual de libheif, compatible con las fotos de iPhone recientes. */
   let heicLib = null;
-  function cargarHeic2any() {
-    if (window.heic2any) return Promise.resolve(window.heic2any);
+  function cargarConversorHeic() {
+    if (window.HeicTo) return Promise.resolve(window.HeicTo);
     if (heicLib) return heicLib;
     heicLib = new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
-      s.onload = () => window.heic2any ? res(window.heic2any) : rej(new Error('No se pudo cargar el conversor de fotos HEIC'));
+      s.src = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.5/dist/iife/heic-to.js';
+      s.onload = () => window.HeicTo ? res(window.HeicTo) : rej(new Error('No se pudo cargar el conversor de fotos HEIC'));
       s.onerror = () => { heicLib = null; rej(new Error('No se pudo cargar el conversor de fotos HEIC. Revisá la conexión.')); };
       document.head.appendChild(s);
     });
@@ -255,9 +256,13 @@
       img = await cargarImagen(file);          // Safari abre HEIC de forma nativa
     } catch (e) {
       if (!esHeic(file)) throw new Error('Formato no compatible. Usá fotos JPG, PNG, WEBP o HEIC.');
-      const heic2any = await cargarHeic2any();   // Chrome y otros: convertir primero
-      let jpg = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
-      if (Array.isArray(jpg)) jpg = jpg[0];
+      const heicTo = await cargarConversorHeic();   // Chrome y otros: convertir primero
+      let jpg;
+      try {
+        jpg = await heicTo({ blob: file, type: 'image/jpeg', quality: 0.9 });
+      } catch (err) {
+        throw new Error('esta foto HEIC no se pudo convertir en este navegador. Probá subirla desde Safari o exportarla como JPG.');
+      }
       img = await cargarImagen(jpg);
     }
     const max = 1600;
