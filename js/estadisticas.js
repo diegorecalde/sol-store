@@ -68,7 +68,7 @@
   // Cloudflare Web Analytics (opcional, sin cookies)
   if (CFG.CF_ANALYTICS_TOKEN && !esAdmin && !noRastrear) {
     const s = document.createElement('script');
-    s.defer = true;
+    s.type = 'module';
     s.src = 'https://static.cloudflareinsights.com/beacon.min.js';
     s.setAttribute('data-cf-beacon', JSON.stringify({ token: CFG.CF_ANALYTICS_TOKEN }));
     document.head.appendChild(s);
