@@ -22,6 +22,9 @@
     if (!FILTROS.some(f => f.id === estado.filtro)) estado.filtro = 'todo';
   }
 
+  const ev = (...a) => { if (window.SOL.evento) window.SOL.evento(...a); };
+  const buscadas = new Set();
+
   const estado = { productos: [], categorias: [], config: {}, filtro: 'todo', q: '', orden: 'rel' };
 
   // ---------- Render de chips ----------
@@ -34,6 +37,7 @@
   }
 
   function aplicarFiltro(id) {
+    if (id !== estado.filtro && id !== 'todo') { const f = FILTROS.find(x => x.id === id); if (f) ev('categoria', '', f.label); }
     estado.filtro = id;
     document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', c.dataset.f === id));
     renderLista();
@@ -84,6 +88,14 @@
       : `Pronto vamos a tener productos en ${f.label}.`;
   }
 
+  /** Guarda el texto buscado (una vez por sesión) y cuántos resultados dio */
+  function registrarBusqueda() {
+    const q = norm(estado.q).slice(0, 40);
+    if (q.length < 3 || buscadas.has(q)) return;
+    buscadas.add(q);
+    ev('busqueda', '', q, $('#grid').querySelectorAll('.card').length);
+  }
+
   function renderDestacados() {
     const d = estado.productos.filter(p => p.destacado && p.stock !== 0).slice(0, 12);
     $('#destacadosSec').hidden = d.length === 0;
@@ -106,7 +118,10 @@
     if (c.mensaje_bienvenida) $('#bienvenida').textContent = c.mensaje_bienvenida;
     $('#footDir').textContent = c.direccion || '';
     const general = waLink(`¡Hola ${c.nombre_tienda || 'Sol Store'}! Quisiera hacer una consulta.`);
-    ['#fabWa', '#footWa'].forEach(s => $(s).href = general);
+    ['#fabWa', '#footWa'].forEach(s => {
+      $(s).href = general;
+      if (!$(s).dataset.ev) { $(s).dataset.ev = '1'; $(s).addEventListener('click', () => ev('wa_general')); }
+    });
     if (c.instagram) {
       const ig = $('#footIg');
       ig.hidden = false;
@@ -171,6 +186,8 @@
       $('#mWa').href = waLink(partes.join('\n'));
     };
     actualizarWa();
+    ev('vista', p.id);
+    $('#mWa').addEventListener('click', () => ev('wa', p.id));
 
     $('#mContenido').querySelectorAll('.opts').forEach(g => g.addEventListener('click', e => {
       const b = e.target.closest('.opt'); if (!b) return;
@@ -188,6 +205,7 @@
     });
 
     $('#mShare').addEventListener('click', async () => {
+      ev('compartir', p.id);
       const url = location.origin + location.pathname + '#p=' + encodeURIComponent(p.id);
       try {
         if (navigator.share) await navigator.share({ title: p.nombre, text: `${p.nombre} - ${precio(p.precio)}`, url });
@@ -222,15 +240,18 @@
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) cerrarDetalle(); });
 
-  let tBusqueda;
+  let tBusqueda, tRegistro;
   $('#q').addEventListener('input', e => {
     clearTimeout(tBusqueda);
+    clearTimeout(tRegistro);
     tBusqueda = setTimeout(() => { estado.q = e.target.value.trim(); renderLista(); }, 200);
+    tRegistro = setTimeout(registrarBusqueda, 1500);
   });
   $('#searchForm').addEventListener('submit', e => {
     e.preventDefault();
     estado.q = $('#q').value.trim();
     renderLista();
+    registrarBusqueda();
     $('#catalogo').scrollIntoView({ behavior: 'smooth' });
   });
   $('#orden').addEventListener('change', e => { estado.orden = e.target.value; renderLista(); });

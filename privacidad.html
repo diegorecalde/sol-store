@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Privacidad · Sol Store</title>
+  <meta name="description" content="Qué datos mide Sol Store en su catálogo online y cuáles no.">
+  <link rel="icon" href="img/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .legal { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+    .legal .box { background: var(--surface); border-radius: var(--r-card); box-shadow: var(--shadow-card); padding: 24px; }
+    .legal h1 { font-size: 26px; letter-spacing: -0.04em; margin: 0 0 6px; }
+    .legal h2 { font-size: 17px; letter-spacing: -0.03em; margin: 24px 0 8px; }
+    .legal p, .legal li { color: #4a4541; font-size: 15px; line-height: 1.55; }
+    .legal ul { padding-left: 20px; margin: 8px 0; }
+    .legal .fecha { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap">
+      <a class="brand" href="./" aria-label="Volver a Sol Store"><span class="brand-text">Sol<small>STORE</small></span></a>
+      <span class="spacer"></span>
+      <a class="top-link" href="./">← Volver a la tienda</a>
+    </div>
+  </header>
+
+  <main class="legal">
+    <div class="box">
+      <h1>Privacidad</h1>
+      <p class="fecha">Última actualización: octubre de 2026</p>
+      <p>En este catálogo no te pedimos datos personales. Cuando hacés un pedido, la conversación sigue por WhatsApp y allí aplican las condiciones de WhatsApp.</p>
+
+      <h2>Qué medimos</h2>
+      <p>Para saber qué productos interesan y mejorar la tienda, registramos de forma <strong>anónima</strong>:</p>
+      <ul>
+        <li>que hubo una visita y desde dónde llegó (por ejemplo Instagram, Google o un enlace directo);</li>
+        <li>qué productos se miraron, se compartieron o se consultaron por WhatsApp;</li>
+        <li>las palabras buscadas en el buscador de la tienda y cuántos resultados dieron;</li>
+        <li>el tipo de dispositivo (celular, tablet o computadora) y la hora de la visita.</li>
+      </ul>
+
+      <h2>Qué no guardamos</h2>
+      <ul>
+        <li>No guardamos tu dirección IP, nombre, teléfono ni correo.</li>
+        <li>No usamos cookies de seguimiento ni identificadores que permitan reconocerte entre visitas.</li>
+        <li>No vendemos ni compartimos estos datos con terceros con fines publicitarios.</li>
+      </ul>
+
+      <h2>Si preferís que no midamos nada</h2>
+      <p>Si tu navegador tiene activada la opción <strong>"No rastrear"</strong> o <strong>Global Privacy Control</strong>, la tienda no registra ninguna estadística de tu visita.</p>
+
+      <h2>Cuánto tiempo se conservan</h2>
+      <p>Los registros detallados se borran automáticamente a los 13 meses. Se almacenan en servicios de Google (Google Sheets) usados por la tienda.</p>
+
+      <h2 id="servicios">Servicios de terceros</h2>
+      <ul>
+        <li><strong>Google</strong>: aloja los datos de la tienda y las fotos de los productos.</li>
+        <li><strong>Netlify</strong>: aloja este sitio web.</li>
+        <li><strong>Unsplash</strong>: algunas fotos de ejemplo pueden cargarse desde este servicio.</li>
+        <li id="cfInfo" hidden><strong>Cloudflare Web Analytics</strong>: estadísticas de tráfico sin cookies (país, navegador y velocidad de carga).</li>
+      </ul>
+      <p>Al cargar la página, tu navegador se conecta con estos servicios, que pueden registrar datos técnicos según sus propias políticas.</p>
+
+      <h2>Consultas</h2>
+      <p>Si tenés preguntas sobre esta política, escribinos por <a id="contactoWa" href="#" target="_blank" rel="noopener">WhatsApp</a>.</p>
+    </div>
+  </main>
+
+  <script src="js/config.js"></script>
+  <script>
+    (function () {
+      var c = window.SOL_CONFIG || {};
+      var num = String(c.WHATSAPP_POR_DEFECTO || '').replace(/\D/g, '');
+      if (num) document.getElementById('contactoWa').href = 'https://wa.me/' + num + '?text=' + encodeURIComponent('Hola, tengo una consulta sobre privacidad.');
+      if (c.CF_ANALYTICS_TOKEN) document.getElementById('cfInfo').hidden = false;
+    })();
+  </script>
+</body>
+</html>

@@ -51,6 +51,7 @@
       <div class="demo-banner" id="demoBanner" hidden style="border-radius:14px;margin-top:12px">Modo demostración: los cambios no se guardan.</div>
       <nav class="tabs" role="tablist">
         <button class="tab" role="tab" data-tab="productos" aria-selected="true">Productos</button>
+        <button class="tab" role="tab" data-tab="estadisticas" aria-selected="false">Estadísticas</button>
         <button class="tab" role="tab" data-tab="categorias" aria-selected="false" data-admin>Categorías</button>
         <button class="tab" role="tab" data-tab="ajustes" aria-selected="false" data-admin>Tienda</button>
         <button class="tab" role="tab" data-tab="usuarios" aria-selected="false" data-admin>Usuarios</button>
@@ -72,6 +73,20 @@
           </button>
         </div>
         <div class="plist" id="plist"></div>
+      </section>
+
+      <!-- Estadísticas -->
+      <section class="panel" id="tab-estadisticas" hidden>
+        <div class="est-head">
+          <div class="seg" role="radiogroup" aria-label="Período">
+            <button type="button" role="radio" data-dias="7" aria-checked="false">7 días</button>
+            <button type="button" role="radio" data-dias="30" aria-checked="true">30 días</button>
+            <button type="button" role="radio" data-dias="90" aria-checked="false">90 días</button>
+          </div>
+          <button class="btn mini" type="button" id="estRecargar">Actualizar</button>
+        </div>
+        <div id="estCont"></div>
+        <p class="hint" style="margin-top:16px">Datos anónimos: no se guardan IP, cookies ni datos personales. No se cuentan tus propias visitas mientras tengas el panel abierto en este navegador. Los registros se borran solos a los 13 meses.</p>
       </section>
 
       <!-- Categorías -->

@@ -117,6 +117,7 @@ function doPost(e) {
   try {
     const accion = datos.action;
     if (accion === 'login') return json_(login_(datos.usuario, datos.clave));
+    if (accion === 'eventos') return json_(registrarEventos_(datos.e));
 
     // A partir de aquí, todo requiere sesión válida
     const sesion = validarSesion_(datos.token);
@@ -125,6 +126,7 @@ function doPost(e) {
     switch (accion) {
       case 'logout': return json_(logout_(datos.token));
       case 'yo': return json_({ ok: true, usuario: sesion });
+      case 'estadisticas': return json_({ ok: true, estadisticas: resumenEstadisticas_(datos.dias) });
       case 'listarProductos': return json_(conLock_(() => { asignarCodigosFaltantes_(); return { ok: true, productos: leerProductos_(false) }; }));
       case 'guardarProducto': return json_(conLock_(() => guardarProducto_(datos.producto, sesion)));
       case 'eliminarProducto': return json_(conLock_(() => eliminarProducto_(datos.id)));

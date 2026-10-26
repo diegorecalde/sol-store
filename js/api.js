@@ -144,6 +144,24 @@
         demoCategorias = demoCategorias.filter(c => c.nombre !== b.nombre); return r();
       }
       case 'ordenarCategorias': demoCategorias.forEach(c => { c.orden = b.nombres.indexOf(c.nombre) + 1; }); return r();
+      case 'estadisticas': {
+        const dias = b.dias || 30, hoy = Date.now(), azar = s => { const x = Math.sin(s) * 10000; return x - Math.floor(x); };
+        const porDia = Array.from({ length: dias }, (_, i) => {
+          const d = new Date(hoy - (dias - 1 - i) * 864e5), vis = Math.round(20 + 25 * azar(i + 1) + (d.getDay() === 0 || d.getDay() === 6 ? 15 : 0));
+          return { dia: d.toISOString().slice(0, 10), visitas: vis, vistas: vis * 3, consultas: Math.round(vis * 0.18 * azar(i + 7) + 1) };
+        });
+        const sum = k => porDia.reduce((a, d) => a + d[k], 0);
+        return r({ estadisticas: {
+          dias, visitas: sum('visitas'), vistas: sum('vistas'), consultas: Math.round(sum('consultas') * 0.8), consultasGenerales: Math.round(sum('consultas') * 0.2), compartidos: Math.round(sum('visitas') * 0.04),
+          porDia, horas: Array.from({ length: 24 }, (_, h) => Math.round((h < 7 ? 2 : h < 12 ? 12 : h < 18 ? 18 : h < 23 ? 30 : 8) * (0.7 + azar(h) * 0.6))),
+          canales: [{ k: 'instagram', n: 410 }, { k: 'whatsapp', n: 220 }, { k: 'directo', n: 130 }, { k: 'facebook', n: 60 }, { k: 'google', n: 35 }],
+          dispositivos: [{ k: 'celular', n: 780 }, { k: 'computadora', n: 61 }, { k: 'tablet', n: 14 }],
+          productos: demoProductos.slice(0, 8).map((p, i) => ({ id: p.id, nombre: p.nombre, codigo: p.codigo, vistas: 160 - i * 15, consultas: Math.round((160 - i * 15) * (0.25 - i * 0.02)) })),
+          busquedas: [{ k: 'vestido', n: 64 }, { k: 'jean', n: 41 }, { k: 'perfume', n: 33 }, { k: 'body', n: 18 }],
+          sinResultado: [{ k: 'zapatillas', n: 22 }, { k: 'malla', n: 15 }, { k: 'bikini', n: 9 }],
+          categorias: [{ k: 'Ropa', n: 320 }, { k: 'Perfumes', n: 140 }, { k: 'Lencería', n: 120 }, { k: 'Accesorios', n: 95 }, { k: 'Segunda mano', n: 88 }]
+        } });
+      }
       case 'listarUsuarios': return r({ usuarios: demoUsuarios });
       case 'crearUsuario': demoUsuarios.push({ usuario: b.usuario, nombre: b.nombre, rol: b.rol, activo: true }); return r();
       case 'estadoUsuario': demoUsuarios.forEach(u => { if (u.usuario === b.usuario) u.activo = b.activo; }); return r();

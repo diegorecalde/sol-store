@@ -14,6 +14,9 @@ sol-store/
 ├── img/                → Logo e ícono
 ├── apps-script/Code.js → Backend (se sube con clasp, NO se publica)
 ├── apps-script/Ejemplos.js → 80 productos de ejemplo (cargar / borrar)
+├── apps-script/Estadisticas.js → Estadísticas anónimas
+├── js/estadisticas.js  → Registro anónimo de visitas en la tienda
+├── privacidad.html     → Política de privacidad
 └── netlify.toml        → Cabeceras de seguridad
 ```
 
@@ -110,3 +113,19 @@ En el editor de Apps Script:
 
 - **`cargarEjemplos`** → agrega 80 productos (20 por categoría) con fotos de Unsplash y precios en Gs.
 - **`borrarEjemplos`** → quita solo esos productos (su id empieza con `ej-`); los reales no se tocan.
+
+## Estadísticas
+
+Pestaña **Estadísticas** del panel: visitas, productos vistos, consultas por WhatsApp, tasa de consulta,
+origen (Instagram, Google…), dispositivo, horarios, lo más buscado y búsquedas sin resultado.
+
+- Anónimas: no se guardan IP, cookies ni datos personales (ver `privacidad.html`).
+- No registra nada si el navegador pide "No rastrear" (GPC / DNT) ni si hay sesión abierta en el panel.
+- Los registros se guardan en la hoja `Estadisticas` y se borran solos a los 13 meses.
+- Para medir campañas, agregar `?utm_source=instagram` (o `whatsapp`, `facebook`, `tiktok`) al enlace.
+
+### Cloudflare Web Analytics (opcional)
+
+1. dash.cloudflare.com → **Analytics & Logs → Web Analytics → Add a site**.
+2. Escribir el dominio (`solstore.netlify.app`) y copiar el **token** del fragmento que muestra.
+3. Pegarlo en `js/config.js` → `CF_ANALYTICS_TOKEN`.

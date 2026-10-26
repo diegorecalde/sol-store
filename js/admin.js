@@ -71,6 +71,7 @@
     $$('.panel').forEach(p => p.hidden = p.id !== 'tab-' + id);
     if (id === 'ajustes') cargarConfig();
     if (id === 'categorias') renderCategorias();
+    if (id === 'estadisticas') cargarEstadisticas();
     if (id === 'usuarios') cargarUsuarios();
   }
   $$('.tab').forEach(t => t.addEventListener('click', () => cambiarTab(t.dataset.tab)));
@@ -361,6 +362,124 @@
       toast('Producto eliminado');
     } catch (err) { $('#eErr').textContent = err.message; }
   });
+
+  // ---------- Estadísticas ----------
+  st.estDias = 30;
+  const fmtN = n => Math.round(n).toLocaleString('es-PY');
+  const pct = (a, b) => b ? (Math.round(a / b * 1000) / 10).toLocaleString('es-PY') + '\u00a0%' : '—';
+  const NOMBRE_CANAL = { instagram: 'Instagram', facebook: 'Facebook', whatsapp: 'WhatsApp', google: 'Google', tiktok: 'TikTok', directo: 'Directo / enlace', otro: 'Otros sitios' };
+  const NOMBRE_DISP = { celular: 'Celular', tablet: 'Tablet', computadora: 'Computadora' };
+
+  document.querySelectorAll('.seg [data-dias]').forEach(b => b.addEventListener('click', () => {
+    st.estDias = Number(b.dataset.dias);
+    document.querySelectorAll('.seg [data-dias]').forEach(x => x.setAttribute('aria-checked', x === b));
+    cargarEstadisticas();
+  }));
+  $('#estRecargar').addEventListener('click', () => cargarEstadisticas());
+
+  async function cargarEstadisticas() {
+    $('#estCont').innerHTML = '<div class="empty">Cargando estadísticas…</div>';
+    try {
+      const r = await api('estadisticas', { dias: st.estDias });
+      renderEstadisticas(r.estadisticas);
+    } catch (err) {
+      $('#estCont').innerHTML = /no válida/i.test(err.message)
+        ? `<div class="empty">Para ver estadísticas falta actualizar el backend.<br>Ejecutá <code>.\\actualizar.ps1</code> en la carpeta <code>apps-script</code>.</div>`
+        : `<div class="empty">${esc(err.message)}</div>`;
+    }
+  }
+
+  /** Gráfico de barras de una sola serie, con tooltip al pasar el mouse */
+  function barras(id, puntos, titulo) {
+    const cont = document.getElementById(id);
+    cont._datos = [puntos, titulo];
+    // El ancho del dibujo es el ancho real: el texto de los ejes queda siempre a 11 px
+    const W = Math.max(260, Math.round(cont.clientWidth || 640)), H = 170, top = 12, bottom = 22, left = 30;
+    const n = puntos.length, max = Math.max(1, ...puntos.map(p => p.v));
+    const escala = Math.pow(10, Math.floor(Math.log10(max)));
+    const tope = Math.ceil(max / escala) * escala;
+    const ancho = (W - left) / n;
+    const alto = v => (H - top - bottom) * v / tope;
+    const cada = Math.max(1, Math.ceil(n / Math.max(3, Math.floor((W - left) / 56))));
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(titulo)}">`;
+    [0, 0.5, 1].forEach(f => {
+      const y = H - bottom - (H - top - bottom) * f;
+      svg += `<line class="grid" x1="${left}" x2="${W}" y1="${y}" y2="${y}"/><text class="eje" x="${left - 6}" y="${y + 4}" text-anchor="end">${fmtN(tope * f)}</text>`;
+    });
+    puntos.forEach((p, i) => {
+      const x = left + i * ancho, h = alto(p.v), bw = Math.max(1, ancho - 2);
+      const r = Math.min(4, bw / 2);
+      const y = H - bottom - h;
+      // barra con extremo superior redondeado, apoyada en la base
+      const d = h <= 0 ? '' : h < r
+        ? `M${x + 1},${H - bottom}h${bw}v${-h}h${-bw}z`
+        : `M${x + 1},${H - bottom}v${-(h - r)}a${r},${r} 0 0 1 ${r},${-r}h${bw - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - r}z`;
+      svg += `<rect class="hit" data-i="${i}" x="${x}" y="${top}" width="${ancho}" height="${H - top - bottom}"/>`;
+      svg += `<path class="barra" d="${d}"/>`;
+      if ((n - 1 - i) % cada === 0) {
+        const cx = x + ancho / 2, alFinal = cx + 18 > W;   // la última etiqueta se alinea al borde para no cortarse
+        svg += `<text class="eje" x="${alFinal ? W : cx}" y="${H - 6}" text-anchor="${alFinal ? 'end' : 'middle'}">${esc(p.l)}</text>`;
+      }
+    });
+    svg += '</svg>';
+    cont.innerHTML = svg + '<div class="tip" hidden></div>';
+    const tip = cont.querySelector('.tip');
+    cont.querySelectorAll('.hit').forEach(h => {
+      h.addEventListener('mouseenter', () => {
+        const p = puntos[h.dataset.i];
+        tip.innerHTML = `${esc(p.t || p.l)}: <b>${fmtN(p.v)}</b>`;
+        const caja = cont.getBoundingClientRect(), r = h.getBoundingClientRect();
+        tip.style.left = (r.left - caja.left + r.width / 2) + 'px';
+        tip.style.top = (r.top - caja.top + (H - bottom - alto(p.v) - top) * caja.width / W) + 'px';
+        tip.hidden = false;
+      });
+      h.addEventListener('mouseleave', () => { tip.hidden = true; });
+    });
+  }
+
+  // Redibujar los gráficos si cambia el ancho de la ventana
+  let tRedibujo;
+  window.addEventListener('resize', () => {
+    clearTimeout(tRedibujo);
+    tRedibujo = setTimeout(() => document.querySelectorAll('.chart').forEach(c => { if (c._datos && c.offsetParent) barras(c.id, ...c._datos); }), 200);
+  });
+
+  function ranking(lista, nombre) {
+    if (!lista.length) return '<div class="vacio-est">Sin datos todavía.</div>';
+    const max = Math.max(...lista.map(x => x.n));
+    return lista.map(x => `<div class="rank"><span class="lbl">${esc(nombre ? nombre(x.k) : x.k)}</span><span class="num">${fmtN(x.n)}</span>
+      <span class="bar"><i style="width:${Math.max(2, x.n / max * 100)}%"></i></span></div>`).join('');
+  }
+
+  function renderEstadisticas(e) {
+    const fechaCorta = k => { const [, m, d] = k.split('-'); return `${Number(d)}/${Number(m)}`; };
+    const consultasTot = e.consultas + e.consultasGenerales;
+    $('#estCont').innerHTML = `
+      <div class="stats">
+        <div class="stat"><b>${fmtN(e.visitas)}</b><span>Visitas</span><small>sesiones en la tienda</small></div>
+        <div class="stat"><b>${fmtN(e.vistas)}</b><span>Productos vistos</span><small>detalles abiertos</small></div>
+        <div class="stat"><b>${fmtN(consultasTot)}</b><span>Consultas por WhatsApp</span><small>${fmtN(e.consultas)} desde un producto</small></div>
+        <div class="stat"><b>${pct(e.consultas, e.vistas)}</b><span>Tasa de consulta</span><small>consultas ÷ productos vistos</small></div>
+        <div class="stat"><b>${fmtN(e.compartidos)}</b><span>Compartidos</span><small>enlaces de producto</small></div>
+      </div>
+      <div class="est-grid">
+        <div class="box ancho"><h3>Visitas por día</h3><div class="chart" id="gVis"></div></div>
+        <div class="box ancho"><h3>Consultas por WhatsApp por día</h3><div class="chart" id="gWa"></div></div>
+        <div class="box ancho"><h3>Productos con más interés</h3>
+          ${e.productos.length ? `<table class="tabla"><thead><tr><th>Producto</th><th class="n">Vistas</th><th class="n">Consultas</th><th class="n">Tasa</th></tr></thead><tbody>
+          ${e.productos.map(p => `<tr><td>${p.codigo ? `<span class="cod">${esc(p.codigo)}</span> · ` : ''}${esc(p.nombre)}</td><td class="n">${fmtN(p.vistas)}</td><td class="n">${fmtN(p.consultas)}</td><td class="n">${pct(p.consultas, p.vistas)}</td></tr>`).join('')}
+          </tbody></table>` : '<div class="vacio-est">Sin datos todavía.</div>'}</div>
+        <div class="box"><h3>De dónde llegan</h3>${ranking(e.canales, k => NOMBRE_CANAL[k] || k)}</div>
+        <div class="box"><h3>Dispositivos</h3>${ranking(e.dispositivos, k => NOMBRE_DISP[k] || k)}</div>
+        <div class="box"><h3>Búsquedas sin resultado</h3><p class="hint">Lo que buscan y no encuentran: ideas para traer.</p>${ranking(e.sinResultado)}</div>
+        <div class="box"><h3>Lo más buscado</h3>${ranking(e.busquedas)}</div>
+        <div class="box"><h3>Categorías más tocadas</h3>${ranking(e.categorias)}</div>
+        <div class="box"><h3>Horarios con más visitas</h3><div class="chart" id="gHoras"></div></div>
+      </div>`;
+    barras('gVis', e.porDia.map(d => ({ l: fechaCorta(d.dia), t: fechaCorta(d.dia), v: d.visitas })), 'Visitas por día');
+    barras('gWa', e.porDia.map(d => ({ l: fechaCorta(d.dia), t: fechaCorta(d.dia), v: d.consultas })), 'Consultas por WhatsApp por día');
+    barras('gHoras', e.horas.map((v, h) => ({ l: String(h), t: `${h}:00 a ${h}:59`, v })), 'Visitas por hora del día');
+  }
 
   // ---------- Categorías ----------
   const DEFECTO = [['Ropa', 'ropa'], ['Accesorios', 'acc'], ['Lencería', 'lenc'], ['Perfumes', 'perf']];
