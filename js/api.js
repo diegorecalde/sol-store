@@ -55,6 +55,22 @@
   const icono = (k, tam = 16) => `<svg class="icon" viewBox="0 0 24 24" style="width:${tam}px;height:${tam}px" aria-hidden="true">${
     ICONOS_SISTEMA[k] || (ICONOS[k] || ICONOS.etiqueta).d}</svg>`;
 
+  /** Qué opciones elige el cliente según la categoría (ej. Talle/Color, Fragancia/Presentación).
+   *  Usa lo configurado en la hoja Categorias; si falta (backend anterior), una sugerencia por nombre. */
+  function opcionesPorDefecto(nombre) {
+    const n = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (/perfum|fragan|splash|colonia/.test(n)) return ['Fragancia', 'Presentación'];
+    if (/joy|bijou|accesor/.test(n)) return ['Modelo', 'Color'];
+    if (/calzad|zapat/.test(n)) return ['Número', 'Color'];
+    if (/ropa|lenc|pijam|malla|indument/.test(n)) return ['Talle', 'Color'];
+    return ['Opción', 'Color'];
+  }
+  function opcionesDe(categoria, categorias) {
+    const c = (categorias || []).find(x => x.nombre === categoria);
+    if (c && (c.opcion1 !== undefined || c.opcion2 !== undefined)) return [c.opcion1 || '', c.opcion2 || ''];
+    return opcionesPorDefecto(categoria);
+  }
+
   async function get(params = {}) {
     if (DEMO) return demoGet();
     const url = CFG.API_URL + '?' + new URLSearchParams(params);
@@ -90,14 +106,14 @@
     { id: 'd7', codigo: 'A007', nombre: 'Aros dorados argolla', categoria: 'Accesorios', condicion: 'Nuevo', precio: 45000, precio_anterior: 0, talles: [], colores: ['Dorado'], descripcion: 'Acero quirúrgico bañado en oro.', imagenes: [], stock: 10, destacado: false, activo: true },
     { id: 'd8', codigo: 'R008', nombre: 'Camisa de seda', categoria: 'Ropa', condicion: 'Nuevo', precio: 160000, precio_anterior: 0, talles: ['S', 'M'], colores: ['Marfil'], descripcion: 'Seda satinada, corte recto.', imagenes: [], stock: 0, destacado: false, activo: true },
     { id: 'd9', codigo: 'L009', nombre: 'Body de microfibra', categoria: 'Lencería', condicion: 'Nuevo', precio: 75000, precio_anterior: 0, talles: ['S', 'M', 'L', 'XL'], colores: ['Negro', 'Piel'], descripcion: 'Sin costuras, efecto segunda piel.', imagenes: [], stock: 8, destacado: false, activo: true },
-    { id: 'd10', codigo: 'P010', nombre: 'Body splash vainilla', categoria: 'Perfumes', condicion: 'Nuevo', precio: 60000, precio_anterior: 0, talles: [], colores: [], descripcion: '250 ml, fragancia dulce y suave.', imagenes: [], stock: 7, destacado: false, activo: true }
+    { id: 'd10', codigo: 'P010', nombre: 'Body splash Luci', categoria: 'Perfumes', condicion: 'Nuevo', precio: 60000, precio_anterior: 0, talles: ['Divine by Night', 'Cherry Kiss', 'Citrus Bloom', 'Cookie', 'Sunset Feeling'], colores: ['250 ml'], pedido: true, plazo: '3 a 5 días hábiles', descripcion: '250 ml, fragancia dulce y suave.', imagenes: [], stock: 7, destacado: false, activo: true }
   ];
   let demoConfig = { nombre_tienda: 'Sol Store', whatsapp: CFG.WHATSAPP_POR_DEFECTO || '', instagram: 'solstore', mensaje_bienvenida: 'Ropa nueva y de segunda mano, accesorios, lencería y perfumes.', direccion: 'Asunción, Paraguay' };
   let demoCategorias = [
-    { nombre: 'Ropa', icono: 'ropa', orden: 1, activo: true },
-    { nombre: 'Accesorios', icono: 'acc', orden: 2, activo: true },
-    { nombre: 'Lencería', icono: 'lenc', orden: 3, activo: true },
-    { nombre: 'Perfumes', icono: 'perf', orden: 4, activo: true }
+    { nombre: 'Ropa', icono: 'ropa', orden: 1, activo: true, opcion1: 'Talle', opcion2: 'Color' },
+    { nombre: 'Accesorios', icono: 'acc', orden: 2, activo: true, opcion1: 'Modelo', opcion2: 'Color' },
+    { nombre: 'Lencería', icono: 'lenc', orden: 3, activo: true, opcion1: 'Talle', opcion2: 'Color' },
+    { nombre: 'Perfumes', icono: 'perf', orden: 4, activo: true, opcion1: 'Fragancia', opcion2: 'Presentación' }
   ];
   let demoUsuarios = [{ usuario: 'admin', nombre: 'Administrador', rol: 'admin', activo: true }];
 
@@ -135,7 +151,8 @@
         if (ex) {
           if (ex.nombre !== c.nombre) demoProductos.forEach(p => { if (p.categoria === ex.nombre) p.categoria = c.nombre; });
           Object.assign(ex, { nombre: c.nombre, icono: c.icono, activo: c.activo !== false });
-        } else demoCategorias.push({ nombre: c.nombre, icono: c.icono, orden: demoCategorias.length + 1, activo: c.activo !== false });
+          Object.assign(ex, { opcion1: c.opcion1, opcion2: c.opcion2 });
+        } else demoCategorias.push({ nombre: c.nombre, icono: c.icono, orden: demoCategorias.length + 1, activo: c.activo !== false, opcion1: c.opcion1, opcion2: c.opcion2 });
         return r();
       }
       case 'eliminarCategoria': {
@@ -170,5 +187,5 @@
     }
   }
 
-  window.SOL = { DEMO, esc, precio, imgUrl, imgFallback, get, post, toast, ICONOS, icono };
+  window.SOL = { DEMO, esc, precio, imgUrl, imgFallback, get, post, toast, ICONOS, icono, opcionesDe, opcionesPorDefecto };
 })();

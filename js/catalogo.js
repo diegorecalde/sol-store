@@ -1,6 +1,6 @@
 /* Catálogo público */
 (function () {
-  const { esc, precio, imgUrl, imgFallback, get, toast, icono } = window.SOL;
+  const { esc, precio, imgUrl, imgFallback, get, toast, icono, opcionesDe } = window.SOL;
   const $ = s => document.querySelector(s);
 
   // Íconos por defecto para catálogos sin lista de categorías (backend anterior)
@@ -49,13 +49,13 @@
     const media = img
       ? `<img src="${esc(imgUrl(img, 600))}" alt="${esc(p.nombre)}" loading="lazy" onerror="SOL.imgFallback(this)">`
       : `<div class="ph">${esc((p.nombre || 'S')[0])}</div>`;
-    const agotado = p.stock === 0;
+    const agotado = p.stock === 0 && !p.pedido;
     return `
       <button class="card" type="button" data-id="${esc(p.id)}" aria-label="${esc(p.nombre)}, ${esc(precio(p.precio))}">
         <div class="card-media">
           ${media}
           ${p.condicion === 'Segunda mano' ? '<span class="badge used">Segunda mano</span>' : (p.precio_anterior > p.precio ? '<span class="badge">Oferta</span>' : '')}
-          ${agotado ? '<span class="badge sold">Agotado</span>' : ''}
+          ${agotado ? '<span class="badge sold">Agotado</span>' : (p.pedido ? '<span class="badge pedido">Por pedido</span>' : '')}
         </div>
         <div class="card-body">
           <span class="card-cat">${esc(p.categoria)}${p.codigo ? `<span class="card-cod">${esc(p.codigo)}</span>` : ''}</span>
@@ -72,12 +72,12 @@
     const f = FILTROS.find(x => x.id === estado.filtro) || FILTROS[0];
     const q = norm(estado.q);
     let lista = estado.productos.filter(f.fn).filter(p =>
-      !q || norm([p.codigo, p.nombre, p.categoria, p.condicion, p.descripcion, (p.colores || []).join(' ')].join(' ')).includes(q));
+      !q || norm([p.codigo, p.nombre, p.categoria, p.condicion, p.descripcion, (p.talles || []).join(' '), (p.colores || []).join(' ')].join(' ')).includes(q));
 
     if (estado.orden === 'menor') lista.sort((a, b) => a.precio - b.precio);
     else if (estado.orden === 'mayor') lista.sort((a, b) => b.precio - a.precio);
     else if (estado.orden === 'nuevos') lista.sort((a, b) => String(b.creado || b.id).localeCompare(String(a.creado || a.id)));
-    else lista.sort((a, b) => (a.stock === 0) - (b.stock === 0)); // agotados al final
+    else lista.sort((a, b) => (a.stock === 0 && !a.pedido) - (b.stock === 0 && !b.pedido)); // agotados al final
 
     $('#tituloLista').textContent = estado.q ? `Resultados para “${estado.q}”` : (f.id === 'todo' ? 'Todo el catálogo' : f.label);
     $('#contador').textContent = lista.length === 1 ? '1 producto' : `${lista.length} productos`;
@@ -97,7 +97,7 @@
   }
 
   function renderDestacados() {
-    const d = estado.productos.filter(p => p.destacado && p.stock !== 0).slice(0, 12);
+    const d = estado.productos.filter(p => p.destacado && (p.stock !== 0 || p.pedido)).slice(0, 12);
     $('#destacadosSec').hidden = d.length === 0;
     $('#destacados').innerHTML = d.map(tarjeta).join('');
   }
@@ -134,9 +134,13 @@
   function abrirDetalle(id, desdeHash) {
     const p = estado.productos.find(x => String(x.id) === String(id));
     if (!p) return;
-    const sel = { talle: p.talles.length === 1 ? p.talles[0] : '', color: p.colores.length === 1 ? p.colores[0] : '' };
+    // Las opciones dependen de la categoría: Talle/Color en ropa, Fragancia/Presentación en perfumes…
+    // Si la categoría no usa una opción, no se muestra aunque el producto tenga datos cargados.
+    const [et1, et2] = opcionesDe(p.categoria, estado.categorias);
+    const op1 = et1 ? p.talles || [] : [], op2 = et2 ? p.colores || [] : [];
+    const sel = { o1: op1.length === 1 ? op1[0] : '', o2: op2.length === 1 ? op2[0] : '' };
     const imgs = p.imagenes || [];
-    const agotado = p.stock === 0;
+    const agotado = p.stock === 0 && !p.pedido;
 
     const opciones = (titulo, lista, clave) => lista.length ? `
       <div><div class="opt-label">${titulo}</div>
@@ -159,15 +163,17 @@
             <span class="tag">${esc(p.condicion)}</span>
             ${p.codigo ? `<span class="tag tag-cod">Cód. ${esc(p.codigo)}</span>` : ''}
             ${agotado ? '<span class="tag" style="background:#f6dcd6;color:#8d2f20">Agotado</span>' : ''}
+            ${p.pedido ? '<span class="tag tag-pedido">Por pedido</span>' : ''}
           </div>
           <h3 id="mTitulo">${esc(p.nombre)}</h3>
           <div class="price"><b>${esc(precio(p.precio))}</b>${p.precio_anterior > p.precio ? `<s>${esc(precio(p.precio_anterior))}</s>` : ''}</div>
-          ${opciones('Talle', p.talles, 'talle')}
-          ${opciones('Color', p.colores, 'color')}
+          ${p.pedido ? `<p class="aviso-pedido"><b>Producto por pedido.</b> ${p.plazo ? `Entrega estimada: ${esc(p.plazo)}.` : 'Consultanos el plazo de entrega.'}</p>` : ''}
+          ${opciones(et1, op1, 'o1')}
+          ${opciones(et2, op2, 'o2')}
           ${p.descripcion ? `<p class="desc">${esc(p.descripcion)}</p>` : ''}
           <a class="btn btn-block wa-btn" id="mWa" target="_blank" rel="noopener" href="#">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z"/></svg>
-            ${agotado ? 'Consultar disponibilidad' : 'Pedir por WhatsApp'}
+            ${agotado ? 'Consultar disponibilidad' : (p.pedido ? 'Encargar por WhatsApp' : 'Pedir por WhatsApp')}
           </a>
           <button class="btn btn-block btn-ghost" id="mShare" type="button">
             <svg class="icon" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v14"/></svg>Compartir
@@ -180,8 +186,9 @@
       const partes = [`¡Hola! Me interesa este producto:`, `• ${p.nombre}`];
       if (p.codigo) partes.push(`• Código: ${p.codigo}`);
       partes.push(`• Precio: ${precio(p.precio)}`);
-      if (sel.talle) partes.push(`• Talle: ${sel.talle}`);
-      if (sel.color) partes.push(`• Color: ${sel.color}`);
+      if (sel.o1) partes.push(`• ${et1}: ${sel.o1}`);
+      if (sel.o2) partes.push(`• ${et2}: ${sel.o2}`);
+      if (p.pedido) partes.push('• Producto por pedido');
       partes.push('', location.origin + location.pathname + '#p=' + encodeURIComponent(p.id));
       $('#mWa').href = waLink(partes.join('\n'));
     };

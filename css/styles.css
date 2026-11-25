@@ -164,8 +164,10 @@ a { color: inherit; }
 }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
 .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.card-media { position: relative; aspect-ratio: 1 / 1; border-radius: var(--r-img); overflow: hidden; background: var(--accent-wash); }
-.card-media img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s ease; }
+.card-media { position: relative; aspect-ratio: 1 / 1; border-radius: var(--r-img); overflow: hidden; background: #fff; }
+/* contain: la foto se ve completa (sin recortes), sea horizontal, vertical o cuadrada */
+.card-media img { width: 100%; height: 100%; object-fit: contain; transition: transform .4s ease; }
+.card-media .ph { background: var(--accent-wash); }
 .card:hover .card-media img { transform: scale(1.04); }
 .badge {
   position: absolute; top: 10px; left: 10px;
@@ -175,6 +177,9 @@ a { color: inherit; }
 }
 .badge.used { background: var(--ink); color: #fff; }
 .badge.sold { left: auto; right: 10px; background: var(--danger); color: #fff; }
+.badge.pedido { left: auto; right: 10px; background: var(--accent); color: #fff; }
+.tag.tag-pedido { background: var(--accent); color: #fff; }
+.aviso-pedido { margin: 0; font-size: 14px; color: #6f5230; background: var(--accent-wash); border-radius: 14px; padding: 10px 14px; }
 .card-body { padding: 0 8px; display: flex; flex-direction: column; gap: 4px; }
 .card-cod { float: right; text-transform: none; letter-spacing: .02em; color: var(--ink); font-weight: 600; }
 .tag.tag-cod { background: var(--ink); color: #fff; letter-spacing: .03em; }
@@ -214,8 +219,9 @@ a { color: inherit; }
 .modal-close { position: absolute; top: 14px; right: 14px; z-index: 2; }
 .detail { display: grid; gap: 20px; }
 @media (min-width: 760px) { .detail { grid-template-columns: 1.1fr 1fr; gap: 28px; } }
-.gallery-main { aspect-ratio: 1/1; border-radius: var(--r-img); overflow: hidden; background: var(--accent-wash); }
-.gallery-main img { width: 100%; height: 100%; object-fit: cover; }
+.gallery-main { aspect-ratio: 1/1; border-radius: var(--r-img); overflow: hidden; background: #fff; border: 1px solid var(--border); }
+.gallery-main img { width: 100%; height: 100%; object-fit: contain; }
+.gallery-main .ph { background: var(--accent-wash); }
 .thumbs { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; }
 .thumbs button { width: 56px; height: 56px; flex: none; border-radius: 12px; overflow: hidden; border: 2px solid transparent; padding: 0; background: var(--accent-wash); }
 .thumbs button[aria-current="true"] { border-color: var(--accent); }

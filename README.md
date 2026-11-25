@@ -129,3 +129,11 @@ origen (Instagram, Google…), dispositivo, horarios, lo más buscado y búsqued
 1. dash.cloudflare.com → **Analytics & Logs → Web Analytics → Add a site**.
 2. Escribir el dominio (`solstore.netlify.app`) y copiar el **token** del fragmento que muestra.
 3. Pegarlo en `js/config.js` → `CF_ANALYTICS_TOKEN`.
+
+## Opciones por categoría y productos sobre pedido
+
+- Cada categoría define qué elige el cliente: **Opción 1** y **Opción 2** (pestaña Categorías).
+  Ej.: Ropa → Talle / Color · Perfumes → Fragancia / Presentación · Joyería → Modelo / Color.
+  Si una opción queda vacía, no se muestra en esa categoría.
+- **Sobre pedido**: casilla en el editor del producto, con plazo de entrega opcional. Nunca figura como agotado.
+- **Fotos**: se muestran completas, sin recortar. Ideal: cuadradas (1:1), 1200 × 1200 px, producto centrado y fondo claro.

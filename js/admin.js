@@ -1,6 +1,6 @@
 /* Panel de administración */
 (function () {
-  const { esc, precio, imgUrl, post, toast, DEMO, ICONOS, icono } = window.SOL;
+  const { esc, precio, imgUrl, post, toast, DEMO, ICONOS, icono, opcionesDe, opcionesPorDefecto } = window.SOL;
   const $ = s => document.querySelector(s);
   const $$ = s => Array.from(document.querySelectorAll(s));
 
@@ -96,7 +96,7 @@
       (!q || p.nombre.toLowerCase().includes(q) || String(p.codigo || '').toLowerCase().includes(q)));
 
     const visibles = st.productos.filter(p => p.activo).length;
-    const agotados = st.productos.filter(p => p.stock === 0).length;
+    const agotados = st.productos.filter(p => p.stock === 0 && !p.pedido).length;
     const usados = st.productos.filter(p => p.condicion === 'Segunda mano').length;
     $('#stats').innerHTML = `
       <div class="stat"><b>${st.productos.length}</b><span>Productos</span></div>
@@ -121,7 +121,7 @@
             ${p.condicion === 'Segunda mano' ? '<i>Segunda mano</i>' : ''}
             ${p.destacado ? '<i>Destacado</i>' : ''}
             ${!p.activo ? '<i class="warn">Oculto</i>' : ''}
-            ${p.stock === 0 ? '<i class="warn">Agotado</i>' : (p.stock != null ? `<i>Stock ${p.stock}</i>` : '')}
+            ${p.pedido ? '<i>Por pedido</i>' : (p.stock === 0 ? '<i class="warn">Agotado</i>' : (p.stock != null ? `<i>Stock ${p.stock}</i>` : ''))}
           </div>
         </div>
         <div class="pact">
@@ -172,6 +172,10 @@
     $('#eTalles').value = p ? p.talles.join(', ') : '';
     $('#eColores').value = p ? p.colores.join(', ') : '';
     $('#eStock').value = p && p.stock != null ? p.stock : '';
+    $('#ePed').checked = p ? !!p.pedido : false;
+    $('#ePlazo').value = p ? (p.plazo || '') : '';
+    actualizarPedido();
+    actualizarOpciones();
     $('#eOrden').value = p && p.orden ? p.orden : '';
     $('#eDesc').value = p ? p.descripcion : '';
     $('#eDest').checked = p ? p.destacado : false;
@@ -189,6 +193,31 @@
     $('#mEdit').hidden = true;
     document.body.style.overflow = '';
   }
+
+  /** Etiquetas de las opciones según la categoría elegida (Talle/Color, Fragancia/Presentación…) */
+  const EJEMPLOS_OPCION = { talle: 'S, M, L', 'número': '35, 36, 37', fragancia: 'Cherry Kiss, Citrus Bloom', 'presentación': '100 ml, 250 ml', modelo: 'Argolla, Colgante', color: 'Negro, Beige', medida: '14, 16, 18' };
+  function actualizarOpciones() {
+    const [e1, e2] = opcionesDe($('#eCat').value, st.categorias);
+    [[e1, '#fOp1', '#lOp1', '#eTalles'], [e2, '#fOp2', '#lOp2', '#eColores']].forEach(([et, f, l, inp]) => {
+      $(f).hidden = !et;
+      if (et) {
+        $(l).textContent = et;
+        $(inp).placeholder = EJEMPLOS_OPCION[et.toLowerCase()] || 'Separadas por coma';
+      }
+    });
+    $('#eOpciones').hidden = !e1 && !e2;
+    const hint = $('#eOpHint');
+    hint.hidden = !!(e1 && e2);
+    hint.textContent = !e1 && !e2 ? 'Esta categoría no usa opciones (se configuran en la pestaña Categorías).' : '';
+    if (!hint.textContent) hint.hidden = true;
+  }
+  function actualizarPedido() {
+    const ped = $('#ePed').checked;
+    $('#fPlazo').hidden = !ped;
+    $('#eStockHint').textContent = ped ? 'Opcional: unidades disponibles para entrega inmediata' : '0 = agotado';
+  }
+  $('#eCat').addEventListener('change', actualizarOpciones);
+  $('#ePed').addEventListener('change', actualizarPedido);
 
   $('#bNuevo').addEventListener('click', () => abrirEditor(null));
   $('#mEdit').addEventListener('click', e => { if (e.target.closest('[data-close]')) cerrarEditor(); });
@@ -321,9 +350,12 @@
       condicion: $('#eCond').value,
       precio: pr,
       precio_anterior: num($('#eAnt').value) || 0,
-      talles: lista($('#eTalles').value),
-      colores: lista($('#eColores').value),
+      // Si la categoría no usa una opción, se guarda vacía para que no quede información que no corresponde
+      talles: $('#fOp1').hidden ? [] : lista($('#eTalles').value),
+      colores: $('#fOp2').hidden ? [] : lista($('#eColores').value),
       stock: $('#eStock').value.trim() === '' ? null : num($('#eStock').value),
+      pedido: $('#ePed').checked,
+      plazo: $('#ePed').checked ? $('#ePlazo').value.trim() : '',
       orden: num($('#eOrden').value) || 0,
       descripcion: $('#eDesc').value.trim(),
       imagenes: st.imgs.filter(x => !x.startsWith('cargando:')),
@@ -531,7 +563,7 @@
     $('#clist').innerHTML = n ? st.categorias.map((c, i) => `
       <div class="uitem ${c.activo ? '' : 'off'}">
         <span class="cdot">${icono(c.icono, 18)}</span>
-        <div class="grow"><b>${esc(c.nombre)}</b><br><span>${cuenta(c.nombre)} producto(s)${c.activo ? '' : ' · Oculta'}</span></div>
+        <div class="grow"><b>${esc(c.nombre)}</b><br><span>${cuenta(c.nombre)} producto(s) · ${esc([c.opcion1, c.opcion2].filter(Boolean).join(' / ') || 'sin opciones')}${c.activo ? '' : ' · Oculta'}</span></div>
         <div class="cact">
           <button class="icon-btn" data-up="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Subir ${esc(c.nombre)}" title="Subir">
             <svg class="icon" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
@@ -562,6 +594,8 @@
     st.catIcono = c ? c.icono : 'etiqueta';
     $('#cTit').textContent = c ? `Editar “${c.nombre}”` : 'Nueva categoría';
     $('#cNom').value = c ? c.nombre : '';
+    const op = c ? [c.opcion1 || '', c.opcion2 || ''] : ['', ''];
+    $('#cOp1').value = op[0]; $('#cOp2').value = op[1];
     $('#cAct').checked = c ? c.activo : true;
     $('#cSave').textContent = c ? 'Guardar cambios' : 'Agregar categoría';
     $('#cCancel').hidden = !c;
@@ -570,6 +604,12 @@
     if (c) { $('#fCat').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('#cNom').focus(); }
   }
   $('#cCancel').addEventListener('click', () => formCategoria(null));
+  // Al crear una categoría, sugiere las opciones según el nombre (se pueden cambiar o borrar)
+  $('#cNom').addEventListener('blur', () => {
+    if (st.catEdit || $('#cOp1').value || $('#cOp2').value || !$('#cNom').value.trim()) return;
+    const [a, b] = opcionesPorDefecto($('#cNom').value);
+    $('#cOp1').value = a; $('#cOp2').value = b;
+  });
 
   async function guardarOrden(lista) {
     const previo = st.categorias;
@@ -609,7 +649,7 @@
     const original = st.catEdit ? st.catEdit.nombre : '';
     const btn = $('#cSave'); btn.disabled = true;
     try {
-      await api('guardarCategoria', { categoria: { nombre, nombreOriginal: original, icono: st.catIcono, activo: $('#cAct').checked } });
+      await api('guardarCategoria', { categoria: { nombre, nombreOriginal: original, icono: st.catIcono, activo: $('#cAct').checked, opcion1: $('#cOp1').value.trim(), opcion2: $('#cOp2').value.trim() } });
       if (original && original !== nombre) st.productos.forEach(p => { if (p.categoria === original) p.categoria = nombre; });
       const r = await api('listarCategorias');
       st.categorias = r.categorias || [];

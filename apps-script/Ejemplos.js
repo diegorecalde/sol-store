@@ -166,7 +166,9 @@ function cargarEjemplos() {
         orden: '',
         creado: fecha,
         actualizado: fecha,
-        codigo: ''
+        codigo: '',
+        pedido: false,
+        plazo: ''
       };
       filas.push(COLUMNAS_PRODUCTOS.map(c => fila[c]));
     });

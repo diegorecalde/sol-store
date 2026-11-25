@@ -23,7 +23,7 @@ const COLUMNAS_PRODUCTOS = [
   'id', 'nombre', 'categoria', 'condicion', 'precio', 'precio_anterior',
   'talles', 'colores', 'descripcion', 'imagenes', 'stock',
   'destacado', 'activo', 'orden', 'creado', 'actualizado',
-  'codigo' // agregado después: siempre al final para no correr columnas existentes
+  'codigo', 'pedido', 'plazo' // agregados después: siempre al final para no correr columnas existentes
 ];
 const COLUMNAS_USUARIOS = ['usuario', 'nombre', 'hash', 'salt', 'rol', 'activo', 'creado'];
 
@@ -206,15 +206,19 @@ function leerProductos_(soloActivos) {
 
 function normalizar_(p) {
   const aLista = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
-  return {
+  // "Por pedido" cargado como talle/opción: se interpreta como producto sobre pedido
+  const esPedido = v => /^(por|sobre|a) pedido$/i.test(v);
+  const opc1 = aLista(p.talles), opc2 = aLista(p.colores);
+  const pedidoEnOpciones = opc1.concat(opc2).some(esPedido);
+  const r = {
     id: String(p.id),
     nombre: String(p.nombre || ''),
     categoria: String(p.categoria || ''),
     condicion: String(p.condicion || 'Nuevo'),
     precio: Number(p.precio) || 0,
     precio_anterior: Number(p.precio_anterior) || 0,
-    talles: aLista(p.talles),
-    colores: aLista(p.colores),
+    talles: opc1.filter(v => !esPedido(v)),
+    colores: opc2.filter(v => !esPedido(v)),
     descripcion: String(p.descripcion || ''),
     imagenes: aLista(p.imagenes),
     stock: p.stock === '' ? null : Number(p.stock),
@@ -223,8 +227,11 @@ function normalizar_(p) {
     orden: Number(p.orden) || 0,
     creado: p.creado instanceof Date ? p.creado.toISOString() : String(p.creado || ''),
     actualizado: p.actualizado instanceof Date ? p.actualizado.toISOString() : String(p.actualizado || ''),
-    codigo: String(p.codigo || '').trim().toUpperCase()
+    codigo: String(p.codigo || '').trim().toUpperCase(),
+    pedido: p.pedido === true || String(p.pedido).toUpperCase() === 'TRUE' || pedidoEnOpciones,
+    plazo: String(p.plazo || '').trim()
   };
+  return r;
 }
 
 function guardarProducto_(p, sesion) {
@@ -254,7 +261,9 @@ function guardarProducto_(p, sesion) {
     orden: Number(p.orden) || '',
     creado: ahora,
     actualizado: ahora,
-    codigo: ''
+    codigo: '',
+    pedido: !!p.pedido,
+    plazo: p.pedido ? String(p.plazo || '').trim().slice(0, 60) : ''
   };
 
   const ids = hoja.getRange(1, 1, hoja.getLastRow(), 1).getValues().map(r => String(r[0]));
@@ -349,13 +358,33 @@ function hojaCategorias_() {
   const ss = SpreadsheetApp.getActive();
   let h = ss.getSheetByName(HOJA_CATEGORIAS);
   if (!h) {
-    h = crearHoja_(ss, HOJA_CATEGORIAS, ['nombre', 'icono', 'orden', 'activo']);
-    h.getRange(2, 1, CATEGORIAS_INICIALES.length, 4)
-      .setValues(CATEGORIAS_INICIALES.map((c, i) => [c[0], c[1], i + 1, true]));
+    h = crearHoja_(ss, HOJA_CATEGORIAS, COLUMNAS_CATEGORIAS);
+    h.getRange(2, 1, CATEGORIAS_INICIALES.length, 6)
+      .setValues(CATEGORIAS_INICIALES.map((c, i) => [c[0], c[1], i + 1, true].concat(opcionesPorDefecto_(c[0]))));
     h.getRange(2, 4, 200).insertCheckboxes();
     validacionCategorias_();
+  } else if (h.getRange(1, 5).getValue() !== 'opcion1') {
+    // Hoja anterior: agrega las columnas de opciones con valores sugeridos según el nombre
+    h.getRange(1, 5, 1, 2).setValues([['opcion1', 'opcion2']]).setFontWeight('bold').setBackground('#f4ede3');
+    const n = h.getLastRow() - 1;
+    if (n > 0) {
+      const nombres = h.getRange(2, 1, n, 1).getValues();
+      h.getRange(2, 5, n, 2).setValues(nombres.map(r => opcionesPorDefecto_(r[0])));
+    }
   }
   return h;
+}
+
+const COLUMNAS_CATEGORIAS = ['nombre', 'icono', 'orden', 'activo', 'opcion1', 'opcion2'];
+
+/** Opciones sugeridas: qué elige el cliente en cada tipo de producto. Vacío = no se muestra. */
+function opcionesPorDefecto_(nombre) {
+  const n = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/perfum|fragan|splash|colonia/.test(n)) return ['Fragancia', 'Presentación'];
+  if (/joy|bijou|accesor/.test(n)) return ['Modelo', 'Color'];
+  if (/calzad|zapat/.test(n)) return ['Número', 'Color'];
+  if (/ropa|lenc|pijam|malla|indument/.test(n)) return ['Talle', 'Color'];
+  return ['Opción', 'Color'];
 }
 
 /** El desplegable de la columna "categoria" en Productos toma los valores de la hoja Categorias */
@@ -377,7 +406,9 @@ function leerCategorias_(soloActivas) {
       nombre: String(r[0]).trim(),
       icono: String(r[1] || 'etiqueta'),
       orden: Number(r[2]) || 999,
-      activo: r[3] === true || String(r[3]).toUpperCase() === 'TRUE'
+      activo: r[3] === true || String(r[3]).toUpperCase() === 'TRUE',
+      opcion1: String(r[4] || '').trim(),
+      opcion2: String(r[5] || '').trim()
     }))
     .sort((a, b) => a.orden - b.orden);
   return soloActivas ? lista.filter(c => c.activo) : lista;
@@ -392,6 +423,8 @@ function guardarCategoria_(c) {
   if (nombre.length < 2 || nombre.length > 40) throw new Error('El nombre debe tener entre 2 y 40 caracteres');
   if (/[,]/.test(nombre)) throw new Error('El nombre no puede tener comas');
   const icono = /^[a-z]{2,12}$/.test(String(c.icono || '')) ? c.icono : 'etiqueta';
+  const etiqueta = v => String(v || '').replace(/[<>=,]/g, '').trim().slice(0, 20);
+  const op = c.opcion1 === undefined && c.opcion2 === undefined ? opcionesPorDefecto_(nombre) : [etiqueta(c.opcion1), etiqueta(c.opcion2)];
   const original = String(c.nombreOriginal || '').trim();
 
   const h = hojaCategorias_();
@@ -403,11 +436,12 @@ function guardarCategoria_(c) {
 
   if (idx > 0) {
     h.getRange(idx + 1, 1, 1, 2).setValues([[nombre, icono]]);
+    h.getRange(idx + 1, 5, 1, 2).setValues([op]);
     h.getRange(idx + 1, 4).setValue(c.activo !== false);
     if (original !== nombre) renombrarEnProductos_(original, nombre);
   } else {
     const maxOrden = filas.slice(1).reduce((m, r) => Math.max(m, Number(r[2]) || 0), 0);
-    h.appendRow([nombre, icono, maxOrden + 1, c.activo !== false]);
+    h.appendRow([nombre, icono, maxOrden + 1, c.activo !== false].concat(op));
     h.getRange(h.getLastRow(), 4).insertCheckboxes().setValue(c.activo !== false);
   }
   limpiarCache_();

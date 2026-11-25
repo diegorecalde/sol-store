@@ -103,6 +103,10 @@
             <label>Ícono</label>
             <div class="icon-pick" id="cIconos" role="radiogroup" aria-label="Ícono de la categoría"></div>
           </div>
+          <div class="row2">
+            <div class="field"><label for="cOp1">Opción 1</label><input class="input" id="cOp1" maxlength="20" placeholder="Ej.: Talle, Fragancia"><small>Lo que elige el cliente. Vacío = no se usa.</small></div>
+            <div class="field"><label for="cOp2">Opción 2</label><input class="input" id="cOp2" maxlength="20" placeholder="Ej.: Color, Presentación"><small>Vacío = no se usa.</small></div>
+          </div>
           <label class="check"><input type="checkbox" id="cAct" checked> Visible en la tienda</label>
           <div class="err-msg" id="cErr" role="alert"></div>
           <div class="row-btns">
@@ -187,15 +191,18 @@
         <div class="field"><label for="ePrecio">Precio (Gs.) *</label><input class="input" id="ePrecio" inputmode="numeric" required></div>
         <div class="field"><label for="eAnt">Precio anterior</label><input class="input" id="eAnt" inputmode="numeric" placeholder="Para mostrar oferta"></div>
       </div>
-      <div class="row2">
-        <div class="field"><label for="eTalles">Talles</label><input class="input" id="eTalles" placeholder="S, M, L"><small>Separados por coma</small></div>
-        <div class="field"><label for="eColores">Colores</label><input class="input" id="eColores" placeholder="Negro, Beige"><small>Separados por coma</small></div>
+      <div class="row2" id="eOpciones">
+        <div class="field" id="fOp1"><label for="eTalles" id="lOp1">Talles</label><input class="input" id="eTalles" placeholder="S, M, L"><small>Separados por coma. El cliente elige una.</small></div>
+        <div class="field" id="fOp2"><label for="eColores" id="lOp2">Colores</label><input class="input" id="eColores" placeholder="Negro, Beige"><small>Separados por coma</small></div>
       </div>
+      <p class="hint" id="eOpHint" hidden></p>
       <div class="row2">
-        <div class="field"><label for="eStock">Stock</label><input class="input" id="eStock" inputmode="numeric" placeholder="Vacío = sin control"><small>0 = agotado</small></div>
+        <div class="field"><label for="eStock">Stock</label><input class="input" id="eStock" inputmode="numeric" placeholder="Vacío = sin control"><small id="eStockHint">0 = agotado</small></div>
         <div class="field"><label for="eOrden">Orden</label><input class="input" id="eOrden" inputmode="numeric" placeholder="1 = primero"></div>
       </div>
       <div class="field"><label for="eDesc">Descripción</label><textarea class="textarea" id="eDesc" maxlength="2000"></textarea></div>
+      <label class="check"><input type="checkbox" id="ePed"> Sobre pedido <small style="color:var(--muted)">(se encarga al recibir el pedido; nunca figura como agotado)</small></label>
+      <div class="field" id="fPlazo" hidden><label for="ePlazo">Plazo de entrega</label><input class="input" id="ePlazo" maxlength="60" placeholder="Ej.: 3 a 5 días hábiles"><small>Opcional. Se muestra al cliente.</small></div>
       <label class="check"><input type="checkbox" id="eDest"> Mostrar en Destacados</label>
       <label class="check"><input type="checkbox" id="eAct" checked> Visible en la tienda</label>
       <div class="err-msg" id="eErr" role="alert"></div>
