@@ -136,4 +136,4 @@ origen (Instagram, Google…), dispositivo, horarios, lo más buscado y búsqued
   Ej.: Ropa → Talle / Color · Perfumes → Fragancia / Presentación · Joyería → Modelo / Color.
   Si una opción queda vacía, no se muestra en esa categoría.
 - **Sobre pedido**: casilla en el editor del producto, con plazo de entrega opcional. Nunca figura como agotado.
-- **Fotos**: se muestran completas, sin recortar. Ideal: cuadradas (1:1), 1200 × 1200 px, producto centrado y fondo claro.
+- **Fotos**: se muestran en un recuadro cuadrado con esquinas redondeadas; lo que sobra de los costados se recorta. Sacarlas cuadradas (1:1), 1200 × 1200 px o más, con el producto centrado y margen alrededor.
